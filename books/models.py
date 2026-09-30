@@ -16,4 +16,4 @@ class Book(models.Model):
         ordering = ["title"]
 
     def __str__(self) -> str:
-        return f"{self.title} by {self.author}"
+        return f"'{self.title}' - {self.author}"
