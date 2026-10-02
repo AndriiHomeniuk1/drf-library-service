@@ -108,5 +108,61 @@
       "inventory": 4,
       "daily_fee": "1.25"
     }
+  },
+  {
+    "model": "users.user",
+    "pk": 1,
+    "fields": {
+      "password": "pbkdf2_sha256$1500000$4w6RpRRQnOjqXwg1it2UOy$dlCmiqn1Q4TGfdp0uYms1Wzu+FmuN1x56WnZqwgOBR4=",
+      "email": "admin@library.com",
+      "first_name": "Library",
+      "last_name": "Admin",
+      "is_staff": true,
+      "is_superuser": true
+    }
+  },
+  {
+    "model": "users.user",
+    "pk": 2,
+    "fields": {
+      "password": "pbkdf2_sha256$1500000$6S2cSN3c5WlYR9crhwQntT$0D8fB0un7dEkCagmMv2EnhXS32XywkI54T8Z/xOLUXU=",
+      "email": "user@library.com",
+      "first_name": "Demo",
+      "last_name": "User",
+      "is_staff": false
+    }
+  },
+  {
+    "model": "users.user",
+    "pk": 3,
+    "fields": {
+      "password": "pbkdf2_sha256$1500000$kjQDFxHMm0PqAYo0gGdhuS$jMpaTN+PYexIdKJ72z0kAkhkJ+aXK4pu7tOj6qhGoGc=",
+      "email": "maria.bondar@example.com",
+      "first_name": "Maria",
+      "last_name": "Bondar",
+      "is_staff": false
+    }
+  },
+  {
+    "model": "users.user",
+    "pk": 4,
+    "fields": {
+      "password": "pbkdf2_sha256$1500000$oTAt1stTOYBGou0IIO0xZe$zw26t6FLrATalyOl0lTJgxDkpp0fglQOFVsFHI7TvI0=",
+      "email": "dmytro.melnyk@example.com",
+      "first_name": "Dmytro",
+      "last_name": "Melnyk",
+      "is_staff": false
+    }
+  },
+  {
+    "model": "users.user",
+    "pk": 5,
+    "fields": {
+      "password": "pbkdf2_sha256$1500000$bU9PRpPYHwPgWtfW391pqX$hEe91TL0drJ3T6dtIT3WW0SFISUblfqhsoIDdVB6BqI=",
+      "email": "kateryna.tkach@example.com",
+      "first_name": "Kateryna",
+      "last_name": "Tkach",
+      "is_staff": false
+    }
   }
 ]
