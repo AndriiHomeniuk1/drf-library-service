@@ -164,5 +164,170 @@
       "last_name": "Tkach",
       "is_staff": false
     }
+  },
+  {
+    "model": "borrowings.borrowing",
+    "pk": 11,
+    "fields": {
+      "borrow_date": "2026-07-15",
+      "expected_return_date": "2026-07-22",
+      "actual_return_date": "2026-07-21",
+      "book": 1,
+      "user": 2
+    }
+  },
+  {
+    "model": "borrowings.borrowing",
+    "pk": 12,
+    "fields": {
+      "borrow_date": "2026-08-05",
+      "expected_return_date": "2026-08-12",
+      "actual_return_date": "2026-08-11",
+      "book": 4,
+      "user": 2
+    }
+  },
+  {
+    "model": "borrowings.borrowing",
+    "pk": 6,
+    "fields": {
+      "borrow_date": "2026-08-20",
+      "expected_return_date": "2026-08-27",
+      "actual_return_date": "2026-08-26",
+      "book": 2,
+      "user": 1
+    }
+  },
+  {
+    "model": "borrowings.borrowing",
+    "pk": 7,
+    "fields": {
+      "borrow_date": "2026-08-25",
+      "expected_return_date": "2026-09-01",
+      "actual_return_date": "2026-08-31",
+      "book": 4,
+      "user": 3
+    }
+  },
+  {
+    "model": "borrowings.borrowing",
+    "pk": 1,
+    "fields": {
+      "borrow_date": "2026-09-01",
+      "expected_return_date": "2026-09-08",
+      "actual_return_date": "2026-09-07",
+      "book": 1,
+      "user": 2
+    }
+  },
+  {
+    "model": "borrowings.borrowing",
+    "pk": 13,
+    "fields": {
+      "borrow_date": "2026-09-08",
+      "expected_return_date": "2026-09-15",
+      "actual_return_date": null,
+      "book": 6,
+      "user": 1
+    }
+  },
+  {
+    "model": "borrowings.borrowing",
+    "pk": 2,
+    "fields": {
+      "borrow_date": "2026-09-10",
+      "expected_return_date": "2026-09-17",
+      "actual_return_date": null,
+      "book": 3,
+      "user": 3
+    }
+  },
+  {
+    "model": "borrowings.borrowing",
+    "pk": 9,
+    "fields": {
+      "borrow_date": "2026-09-12",
+      "expected_return_date": "2026-09-19",
+      "actual_return_date": "2026-09-18",
+      "book": 8,
+      "user": 1
+    }
+  },
+  {
+    "model": "borrowings.borrowing",
+    "pk": 3,
+    "fields": {
+      "borrow_date": "2026-09-15",
+      "expected_return_date": "2026-09-22",
+      "actual_return_date": "2026-09-21",
+      "book": 5,
+      "user": 1
+    }
+  },
+  {
+    "model": "borrowings.borrowing",
+    "pk": 14,
+    "fields": {
+      "borrow_date": "2026-09-18",
+      "expected_return_date": "2026-09-25",
+      "actual_return_date": "2026-09-24",
+      "book": 8,
+      "user": 4
+    }
+  },
+  {
+    "model": "borrowings.borrowing",
+    "pk": 10,
+    "fields": {
+      "borrow_date": "2026-09-20",
+      "expected_return_date": "2026-09-27",
+      "actual_return_date": null,
+      "book": 9,
+      "user": 3
+    }
+  },
+  {
+    "model": "borrowings.borrowing",
+    "pk": 4,
+    "fields": {
+      "borrow_date": "2026-09-25",
+      "expected_return_date": "2026-10-02",
+      "actual_return_date": null,
+      "book": 7,
+      "user": 2
+    }
+  },
+  {
+    "model": "borrowings.borrowing",
+    "pk": 5,
+    "fields": {
+      "borrow_date": "2026-09-28",
+      "expected_return_date": "2026-10-05",
+      "actual_return_date": null,
+      "book": 10,
+      "user": 5
+    }
+  },
+  {
+    "model": "borrowings.borrowing",
+    "pk": 8,
+    "fields": {
+      "borrow_date": "2026-09-29",
+      "expected_return_date": "2026-09-12",
+      "actual_return_date": null,
+      "book": 6,
+      "user": 4
+    }
+  },
+  {
+    "model": "borrowings.borrowing",
+    "pk": 15,
+    "fields": {
+      "borrow_date": "2026-09-29",
+      "expected_return_date": "2026-10-06",
+      "actual_return_date": null,
+      "book": 10,
+      "user": 2
+    }
   }
 ]
