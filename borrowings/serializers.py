@@ -1,4 +1,5 @@
 from rest_framework import serializers
+from rest_framework.exceptions import ValidationError
 
 from borrowings.models import Borrowing
 from books.serializers import BookSerializer
@@ -32,3 +33,13 @@ class BorrowingCreateSerializer(serializers.ModelSerializer):
             "user"
         )
         read_only_fields = ("id", "user")
+
+    def validate(self, attrs):
+        Borrowing.validate_book_inventory(attrs["book"], ValidationError)
+        Borrowing.validate_return_dates(
+            attrs["borrow_date"],
+            attrs["expected_return_date"],
+            attrs.get("actual_return_date"),
+            ValidationError
+        )
+        return attrs
