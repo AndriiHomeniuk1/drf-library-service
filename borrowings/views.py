@@ -13,7 +13,17 @@ class BorrowingViewSet(
     mixins.CreateModelMixin,
     viewsets.GenericViewSet
 ):
-    queryset = Borrowing.objects.select_related("book", "user")
+    queryset = Borrowing.objects
+
+    def get_queryset(self):
+        queryset = self.queryset
+
+        if not self.request.user.is_staff:
+            queryset = queryset.filter(user=self.request.user)
+
+        if self.action in ("list", "retrieve"):
+            queryset = queryset.select_related("book", "user")
+        return queryset
 
     def get_serializer_class(self):
         if self.action == "create":
