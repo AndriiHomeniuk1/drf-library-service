@@ -42,6 +42,16 @@ class Borrowing(models.Model):
         ]
 
     @staticmethod
+    def validate_book_inventory(
+        book: "Book",
+        error_to_raise: Type[Exception] = ValidationError
+    ) -> None:
+        if book.inventory == 0:
+            raise error_to_raise(
+                {"book": "This book is not available (inventory is 0)."}
+            )
+
+    @staticmethod
     def validate_return_dates(
         borrow_date: date,
         expected_return_date: date,
