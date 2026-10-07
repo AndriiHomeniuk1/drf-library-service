@@ -1,4 +1,5 @@
 from rest_framework import viewsets, mixins
+from rest_framework.permissions import IsAuthenticated
 
 from borrowings.models import Borrowing
 from borrowings.serializers import (
@@ -14,6 +15,7 @@ class BorrowingViewSet(
     viewsets.GenericViewSet
 ):
     queryset = Borrowing.objects
+    permission_classes = (IsAuthenticated,)
 
     def get_queryset(self):
         queryset = self.queryset
