@@ -1,4 +1,3 @@
-from django.db.models import Model
 from django.utils import timezone
 from django.db import transaction
 
@@ -7,11 +6,12 @@ from rest_framework.response import Response
 from rest_framework import viewsets, mixins, status
 from rest_framework.permissions import IsAuthenticated
 
-from books.models import Book
 from borrowings.models import Borrowing
 from borrowings.serializers import (
     BorrowingReadSerializer,
-    BorrowingCreateSerializer
+    BorrowingCreateSerializer,
+    EmptySerializer
+
 )
 
 
@@ -47,6 +47,8 @@ class BorrowingViewSet(
     def get_serializer_class(self):
         if self.action == "create":
             return BorrowingCreateSerializer
+        if self.action == "return_borrowing":
+            return EmptySerializer
         return BorrowingReadSerializer
 
     def perform_create(self, serializer):
