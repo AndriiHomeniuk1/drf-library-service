@@ -6,6 +6,8 @@ from rest_framework.response import Response
 from rest_framework import viewsets, mixins, status
 from rest_framework.permissions import IsAuthenticated
 
+from books.models import Book
+from notifications.telegram import send_telegram_message
 from borrowings.models import Borrowing
 from borrowings.serializers import (
     BorrowingReadSerializer,
@@ -13,6 +15,7 @@ from borrowings.serializers import (
     EmptySerializer
 
 )
+from users.models import User
 
 
 class BorrowingViewSet(
@@ -52,7 +55,16 @@ class BorrowingViewSet(
         return BorrowingReadSerializer
 
     def perform_create(self, serializer):
-        serializer.save(user=self.request.user)
+        borrowing = serializer.save(user=self.request.user)
+
+        send_telegram_message(
+            "New borrowing created\n\n"
+            f"borrowing id: {borrowing.pk}\n"
+            f"User: {borrowing.user.email}\n"
+            f"Book: {borrowing.book.title} - {borrowing.book.author}\n"
+            f"Borrowed: {borrowing.borrow_date}\n"
+            f"Expected return: {borrowing.expected_return_date}"
+        )
 
     @action(detail=True, methods=["post"], url_path="return")
     def return_borrowing(self, request, pk=None):
