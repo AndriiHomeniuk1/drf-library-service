@@ -117,7 +117,7 @@ AUTH_PASSWORD_VALIDATORS = [
 
 LANGUAGE_CODE = "en-us"
 
-TIME_ZONE = "UTC"
+TIME_ZONE = "Europe/Kyiv"
 
 USE_I18N = True
 
@@ -157,7 +157,6 @@ TELEGRAM_BOT_TOKEN = os.getenv("TELEGRAM_BOT_TOKEN")
 TELEGRAM_CHAT_ID = os.getenv("TELEGRAM_CHAT_ID")
 
 CELERY_BROKER_URL = os.getenv("CELERY_BROKER_URL")
-CELERY_TIMEZONE = "Europe/Kyiv"
 CELERY_BEAT_SCHEDULE = {
     "check-overdue-borrowings-daily": {
         "task": "borrowings.tasks.check_overdue_borrowings",
