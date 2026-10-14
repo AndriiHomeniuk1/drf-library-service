@@ -7,3 +7,9 @@ __pycache__
 .env
 celerybeat-schedule*
 db.sqlite3
+
+# Docker
+docker-compose.yml
+docker-compose.override.yml
+Dockerfile
+.dockerignore
