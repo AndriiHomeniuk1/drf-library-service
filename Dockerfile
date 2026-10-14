@@ -15,7 +15,6 @@ RUN mkdir -p /files/static
 
 RUN adduser \
     --disabled-password \
-    --no-create-home \
     my_user
 
 RUN chown my_user /app \
