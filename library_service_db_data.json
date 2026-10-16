@@ -358,12 +358,12 @@
     "model": "payments.payment",
     "pk": 3,
     "fields": {
-      "status": "paid",
+      "status": "pending",
       "type": "payment",
       "borrowing": 8,
-      "session_url": "https://checkout.stripe.com/c/pay/cs_test_library003",
-      "session_id": "cs_test_library003",
-      "money_to_pay": "12.25"
+      "session_url": "https://checkout.stripe.com/c/pay/cs_test_a1xLT6jjvLY4JVebVJD9coCyTK136qFwFaRYp1ITj5j2YDrWm7SEc8Yt9x#fidnandhYHdWcXxpYCc%2FJ2FgY2RwaXEnKSdicyc%2FNSknZHVsTmB8Jz8ndW5acWB2cVowNFBKSnJ8SXJwc09QazRXTm5pdk1ybUc8RjEza1E9Z2FgXDJWMmQ8PVxPVEdtbVAxa0wwRGdfSEM2M2s1YmBNUlAxSH9XSl1UbEFLTWhzNUFRcz1fYXxjXzU1QXJqcmtrclMnKSdjd2poVmB3c2B3Jz9xd3BgKSdnZGZuYndqcGthRmppancnPycmY2NjY2NjJyknaWR8anBxUXx1YCc%2FJ3Zsa2JpYFpscWBoJyknYGtkZ2lgVWlkZmBtamlhYHd2Jz9xd3BgeCUl",
+      "session_id": "cs_test_a1xLT6jjvLY4JVebVJD9coCyTK136qFwFaRYp1ITj5j2YDrWm7SEc8Yt9x",
+      "money_to_pay": "12.50"
     }
   },
   {
@@ -406,11 +406,11 @@
     "model": "payments.payment",
     "pk": 7,
     "fields": {
-      "status": "paid",
+      "status": "pending",
       "type": "fine",
       "borrowing": 9,
-      "session_url": "https://checkout.stripe.com/c/pay/cs_test_library007",
-      "session_id": "cs_test_library007",
+      "session_url": "https://checkout.stripe.com/c/pay/cs_test_a1rXOFfy3WaNTuqurZxbfMEU7Wj4JkhPND9RGIDTAPLXbgXCS8i7Rx4tO6#fidnandhYHdWcXxpYCc%2FJ2FgY2RwaXEnKSdicyc%2FNSknZHVsTmB8Jz8ndW5acWB2cVowNFBKSnJ8SXJwc09QazRXTm5pdk1ybUc8RjEza1E9Z2FgXDJWMmQ8PVxPVEdtbVAxa0wwRGdfSEM2M2s1YmBNUlAxSH9XSl1UbEFLTWhzNUFRcz1fYXxjXzU1QXJqcmtrclMnKSdjd2poVmB3c2B3Jz9xd3BgKSdnZGZuYndqcGthRmppancnPycmY2NjY2NjJyknaWR8anBxUXx1YCc%2FJ3Zsa2JpYFpscWBoJyknYGtkZ2lgVWlkZmBtamlhYHd2Jz9xd3BgeCUl",
+      "session_id": "cs_test_a1rXOFfy3WaNTuqurZxbfMEU7Wj4JkhPND9RGIDTAPLXbgXCS8i7Rx4tO6",
       "money_to_pay": "18.00"
     }
   }
