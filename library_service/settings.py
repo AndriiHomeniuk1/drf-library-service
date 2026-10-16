@@ -175,3 +175,5 @@ CELERY_BEAT_SCHEDULE = {
         "schedule": crontab(hour=9, minute=0),
     }
 }
+
+STRIPE_SECRET_KEY = env("STRIPE_SECRET_KEY", default="")
