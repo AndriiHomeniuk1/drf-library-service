@@ -215,7 +215,7 @@
     "fields": {
       "borrow_date": "2026-09-01",
       "expected_return_date": "2026-09-08",
-      "actual_return_date": "2026-09-07",
+      "actual_return_date": "2026-09-10",
       "book": 1,
       "user": 2
     }
@@ -259,7 +259,7 @@
     "fields": {
       "borrow_date": "2026-09-15",
       "expected_return_date": "2026-09-22",
-      "actual_return_date": "2026-09-21",
+      "actual_return_date": "2026-09-28",
       "book": 5,
       "user": 1
     }
@@ -328,6 +328,90 @@
       "actual_return_date": null,
       "book": 10,
       "user": 2
+    }
+  },
+  {
+    "model": "payments.payment",
+    "pk": 1,
+    "fields": {
+      "status": "paid",
+      "type": "payment",
+      "borrowing": 1,
+      "session_url": "https://checkout.stripe.com/c/pay/cs_test_library001",
+      "session_id": "cs_test_library001",
+      "money_to_pay": "3.50"
+    }
+  },
+  {
+    "model": "payments.payment",
+    "pk": 2,
+    "fields": {
+      "status": "paid",
+      "type": "payment",
+      "borrowing": 4,
+      "session_url": "https://checkout.stripe.com/c/pay/cs_test_library002",
+      "session_id": "cs_test_library002",
+      "money_to_pay": "19.25"
+    }
+  },
+  {
+    "model": "payments.payment",
+    "pk": 3,
+    "fields": {
+      "status": "paid",
+      "type": "payment",
+      "borrowing": 8,
+      "session_url": "https://checkout.stripe.com/c/pay/cs_test_library003",
+      "session_id": "cs_test_library003",
+      "money_to_pay": "12.25"
+    }
+  },
+  {
+    "model": "payments.payment",
+    "pk": 4,
+    "fields": {
+      "status": "pending",
+      "type": "payment",
+      "borrowing": 6,
+      "session_url": "https://checkout.stripe.com/c/pay/cs_test_library004",
+      "session_id": "cs_test_library004",
+      "money_to_pay": "8.75"
+    }
+  },
+  {
+    "model": "payments.payment",
+    "pk": 5,
+    "fields": {
+      "status": "pending",
+      "type": "payment",
+      "borrowing": 12,
+      "session_url": "https://checkout.stripe.com/c/pay/cs_test_library005",
+      "session_id": "cs_test_library005",
+      "money_to_pay": "5.25"
+    }
+  },
+  {
+    "model": "payments.payment",
+    "pk": 6,
+    "fields": {
+      "status": "pending",
+      "type": "fine",
+      "borrowing": 5,
+      "session_url": "https://checkout.stripe.com/c/pay/cs_test_library006",
+      "session_id": "cs_test_library006",
+      "money_to_pay": "2.00"
+    }
+  },
+  {
+    "model": "payments.payment",
+    "pk": 7,
+    "fields": {
+      "status": "paid",
+      "type": "fine",
+      "borrowing": 9,
+      "session_url": "https://checkout.stripe.com/c/pay/cs_test_library007",
+      "session_id": "cs_test_library007",
+      "money_to_pay": "18.00"
     }
   }
 ]
