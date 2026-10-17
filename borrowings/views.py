@@ -6,8 +6,8 @@ from rest_framework.response import Response
 from rest_framework import viewsets, mixins, status
 from rest_framework.permissions import IsAuthenticated
 
-from books.models import Book
 from notifications.telegram import send_telegram_message
+from payments.services import create_stripe_session
 from borrowings.models import Borrowing
 from borrowings.serializers import (
     BorrowingReadSerializer,
@@ -15,7 +15,6 @@ from borrowings.serializers import (
     EmptySerializer
 
 )
-from users.models import User
 
 
 class BorrowingViewSet(
@@ -55,7 +54,9 @@ class BorrowingViewSet(
         return BorrowingReadSerializer
 
     def perform_create(self, serializer):
-        borrowing = serializer.save(user=self.request.user)
+        with transaction.atomic():
+            borrowing = serializer.save(user=self.request.user)
+            create_stripe_session(borrowing)
 
         send_telegram_message(
             "New borrowing created\n\n"
