@@ -53,9 +53,12 @@ class BorrowingViewSet(
             return EmptySerializer
         return BorrowingReadSerializer
 
-    def perform_create(self, serializer):
+    def create(self, request, *args, **kwargs):
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+
         with transaction.atomic():
-            borrowing = serializer.save(user=self.request.user)
+            borrowing = serializer.save(user=request.user)
             create_stripe_session(borrowing)
 
         send_telegram_message(
@@ -66,6 +69,12 @@ class BorrowingViewSet(
             f"Borrowed: {borrowing.borrow_date}\n"
             f"Expected return: {borrowing.expected_return_date}"
         )
+
+        read_serializer = BorrowingReadSerializer(
+            borrowing,
+            context=self.get_serializer_context()
+        )
+        return Response(read_serializer.data, status=status.HTTP_201_CREATED)
 
     @action(detail=True, methods=["post"], url_path="return")
     def return_borrowing(self, request, pk=None):
