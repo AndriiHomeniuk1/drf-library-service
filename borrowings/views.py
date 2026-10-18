@@ -44,7 +44,9 @@ class BorrowingViewSet(
                 actual_return_date__isnull=is_active_bool)
 
         if self.action in ("list", "retrieve"):
-            queryset = queryset.select_related("book", "user")
+            queryset = queryset.select_related("book").prefetch_related(
+                "payments"
+            )
         return queryset
 
     def get_serializer_class(self):
