@@ -56,6 +56,7 @@ class BorrowingViewSet(
     def create(self, request, *args, **kwargs):
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
+        book = serializer.validated_data["book"]
 
         with transaction.atomic():
             borrowing = serializer.save(user=request.user)
@@ -64,8 +65,8 @@ class BorrowingViewSet(
         send_telegram_message(
             "New borrowing created\n\n"
             f"borrowing id: {borrowing.pk}\n"
-            f"User: {borrowing.user.email}\n"
-            f"Book: {borrowing.book.title} - {borrowing.book.author}\n"
+            f"User: {request.user.email}\n"
+            f"Book: {book.title} - {book.author}\n"
             f"Borrowed: {borrowing.borrow_date}\n"
             f"Expected return: {borrowing.expected_return_date}"
         )
