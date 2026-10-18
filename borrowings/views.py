@@ -1,3 +1,4 @@
+from django.db.models import Model
 from django.utils import timezone
 from django.db import transaction
 
@@ -6,8 +7,8 @@ from rest_framework.response import Response
 from rest_framework import viewsets, mixins, status
 from rest_framework.permissions import IsAuthenticated
 
-from books.models import Book
 from notifications.telegram import send_telegram_message
+from payments.services import create_stripe_session
 from borrowings.models import Borrowing
 from borrowings.serializers import (
     BorrowingReadSerializer,
@@ -15,7 +16,6 @@ from borrowings.serializers import (
     EmptySerializer
 
 )
-from users.models import User
 
 
 class BorrowingViewSet(
@@ -44,7 +44,9 @@ class BorrowingViewSet(
                 actual_return_date__isnull=is_active_bool)
 
         if self.action in ("list", "retrieve"):
-            queryset = queryset.select_related("book", "user")
+            queryset = queryset.select_related("book").prefetch_related(
+                "payments"
+            )
         return queryset
 
     def get_serializer_class(self):
@@ -54,17 +56,31 @@ class BorrowingViewSet(
             return EmptySerializer
         return BorrowingReadSerializer
 
-    def perform_create(self, serializer):
-        borrowing = serializer.save(user=self.request.user)
+    def create(self, request, *args, **kwargs):
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        book = serializer.validated_data["book"]
+
+        with transaction.atomic():
+            borrowing = serializer.save(user=request.user)
+            create_stripe_session(borrowing)
 
         send_telegram_message(
             "New borrowing created\n\n"
             f"borrowing id: {borrowing.pk}\n"
-            f"User: {borrowing.user.email}\n"
-            f"Book: {borrowing.book.title} - {borrowing.book.author}\n"
+            f"User: {request.user.email}\n"
+            f"Book: {book.title} - {book.author}\n"
             f"Borrowed: {borrowing.borrow_date}\n"
             f"Expected return: {borrowing.expected_return_date}"
         )
+
+        borrowing.book.refresh_from_db()
+
+        read_serializer = BorrowingReadSerializer(
+            borrowing,
+            context=self.get_serializer_context()
+        )
+        return Response(read_serializer.data, status=status.HTTP_201_CREATED)
 
     @action(detail=True, methods=["post"], url_path="return")
     def return_borrowing(self, request, pk=None):

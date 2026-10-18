@@ -5,11 +5,19 @@ from django.db import transaction
 
 from books.models import Book
 from borrowings.models import Borrowing
+from payments.models import Payment
 from books.serializers import BookSerializer
+
+
+class BorrowingPaymentSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Payment
+        fields = ("id", "status", "type", "session_url", "money_to_pay")
 
 
 class BorrowingReadSerializer(serializers.ModelSerializer):
     book = BookSerializer(read_only=True)
+    payments = BorrowingPaymentSerializer(many=True, read_only=True)
 
     class Meta:
         model = Borrowing
@@ -19,7 +27,8 @@ class BorrowingReadSerializer(serializers.ModelSerializer):
             "expected_return_date",
             "actual_return_date",
             "book",
-            "user"
+            "user",
+            "payments",
         )
 
 
