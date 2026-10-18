@@ -1,3 +1,4 @@
+from django.db.models import Model
 from django.utils import timezone
 from django.db import transaction
 
@@ -70,6 +71,8 @@ class BorrowingViewSet(
             f"Borrowed: {borrowing.borrow_date}\n"
             f"Expected return: {borrowing.expected_return_date}"
         )
+
+        borrowing.book.refresh_from_db()
 
         read_serializer = BorrowingReadSerializer(
             borrowing,
