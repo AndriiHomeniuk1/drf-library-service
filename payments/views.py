@@ -37,10 +37,7 @@ class PaymentViewSet(
             queryset = queryset.filter(borrowing__user=self.request.user)
 
         if self.action == "retrieve":
-            queryset = queryset.select_related(
-                "borrowing__book",
-                "borrowing__user"
-            )
+            queryset = queryset.select_related("borrowing__book")
         return queryset
 
     @action(
