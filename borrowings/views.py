@@ -6,15 +6,14 @@ from rest_framework.response import Response
 from rest_framework import viewsets, mixins, status
 from rest_framework.permissions import IsAuthenticated
 
-from notifications.telegram import send_telegram_message
-from payments.services import create_stripe_session
 from borrowings.models import Borrowing
 from borrowings.serializers import (
     BorrowingReadSerializer,
     BorrowingCreateSerializer,
-    EmptySerializer
-
+    EmptySerializer,
 )
+from notifications.telegram import send_telegram_message
+from payments.services import create_stripe_session
 
 
 class BorrowingViewSet(
