@@ -91,7 +91,7 @@ class BorrowingViewSet(
             )
 
         with transaction.atomic():
-            borrowing.actual_return_date = timezone.now().date()
+            borrowing.actual_return_date = timezone.localdate()
             borrowing.save()
 
             book = borrowing.book
