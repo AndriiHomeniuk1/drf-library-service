@@ -92,11 +92,11 @@ class BorrowingViewSet(
 
         with transaction.atomic():
             borrowing.actual_return_date = timezone.localdate()
-            borrowing.save()
+            borrowing.save(update_fields=["actual_return_date"])
 
             book = borrowing.book
             book.inventory += 1
-            book.save()
+            book.save(update_fields=["inventory"])
 
         serializer = BorrowingReadSerializer(borrowing)
         return Response(serializer.data, status=status.HTTP_200_OK)
