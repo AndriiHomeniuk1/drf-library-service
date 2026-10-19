@@ -1,4 +1,3 @@
-from django.db.models import Model
 from django.utils import timezone
 from django.db import transaction
 
@@ -63,7 +62,7 @@ class BorrowingViewSet(
 
         with transaction.atomic():
             borrowing = serializer.save(user=request.user)
-            create_stripe_session(borrowing)
+            create_stripe_session(borrowing, request)
 
         send_telegram_message(
             "New borrowing created\n\n"
