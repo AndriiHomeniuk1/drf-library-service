@@ -94,3 +94,22 @@ class PaymentViewSet(
             {"detail": "Payment successful."},
             status=status.HTTP_200_OK,
         )
+
+    @action(
+        detail=False,
+        methods=["get"],
+        url_path="cancel",
+        url_name="cancel",
+        permission_classes=[AllowAny],
+    )
+    def cancel(self, request):
+        return Response(
+            {
+                "detail": (
+                    "Payment was cancelled. "
+                    "You can pay later, "
+                    "the payment session is available for 24 hours."
+                )
+            },
+            status=status.HTTP_200_OK,
+        )
