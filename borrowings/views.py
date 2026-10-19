@@ -1,5 +1,6 @@
-from django.utils import timezone
 from django.db import transaction
+from django.shortcuts import get_object_or_404
+from django.utils import timezone
 
 from rest_framework.decorators import action
 from rest_framework.response import Response
@@ -82,15 +83,20 @@ class BorrowingViewSet(
 
     @action(detail=True, methods=["post"], url_path="return")
     def return_borrowing(self, request, pk=None):
-        borrowing = self.get_object()
-
-        if borrowing.actual_return_date is not None:
-            return Response(
-                {"detail": "This borrowing has already been returned."},
-                status=status.HTTP_400_BAD_REQUEST
+        with transaction.atomic():
+            borrowing = get_object_or_404(
+                self.get_queryset().select_for_update(),
+                pk=pk
             )
 
-        with transaction.atomic():
+            if borrowing.actual_return_date is not None:
+                return Response(
+                    {
+                        "detail": "This borrowing has already been returned."
+                    },
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+
             borrowing.actual_return_date = timezone.localdate()
             borrowing.save(update_fields=["actual_return_date"])
 
