@@ -15,6 +15,16 @@ def calculate_borrowing_price(borrowing: Borrowing) -> Decimal:
     return borrowing.book.daily_fee * days
 
 
+def calculate_fine(borrowing: Borrowing) -> Decimal:
+    overdue_days = (
+        borrowing.actual_return_date - borrowing.expected_return_date
+    ).days
+    overdue_days = max(overdue_days, 0)
+    return (
+        borrowing.book.daily_fee * overdue_days * settings.FINE_MULTIPLIER
+    )
+
+
 def create_stripe_session(
     borrowing: Borrowing,
     request: HttpRequest
