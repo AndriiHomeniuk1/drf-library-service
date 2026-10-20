@@ -1,21 +1,21 @@
-from django.db.models import Model
-from django.utils import timezone
 from django.db import transaction
+from django.shortcuts import get_object_or_404
+from django.utils import timezone
 
 from rest_framework.decorators import action
 from rest_framework.response import Response
 from rest_framework import viewsets, mixins, status
 from rest_framework.permissions import IsAuthenticated
 
-from notifications.telegram import send_telegram_message
-from payments.services import create_stripe_session
+from books.models import Book
 from borrowings.models import Borrowing
 from borrowings.serializers import (
     BorrowingReadSerializer,
     BorrowingCreateSerializer,
-    EmptySerializer
-
+    EmptySerializer,
 )
+from notifications.telegram import send_telegram_message
+from payments.services import create_stripe_session
 
 
 class BorrowingViewSet(
@@ -63,7 +63,7 @@ class BorrowingViewSet(
 
         with transaction.atomic():
             borrowing = serializer.save(user=request.user)
-            create_stripe_session(borrowing)
+            create_stripe_session(borrowing, request)
 
         send_telegram_message(
             "New borrowing created\n\n"
@@ -84,21 +84,28 @@ class BorrowingViewSet(
 
     @action(detail=True, methods=["post"], url_path="return")
     def return_borrowing(self, request, pk=None):
-        borrowing = self.get_object()
-
-        if borrowing.actual_return_date is not None:
-            return Response(
-                {"detail": "This borrowing has already been returned."},
-                status=status.HTTP_400_BAD_REQUEST
+        with transaction.atomic():
+            borrowing = get_object_or_404(
+                self.get_queryset().select_for_update(),
+                pk=pk
             )
 
-        with transaction.atomic():
-            borrowing.actual_return_date = timezone.now().date()
-            borrowing.save()
+            if borrowing.actual_return_date is not None:
+                return Response(
+                    {
+                        "detail": "This borrowing has already been returned."
+                    },
+                    status=status.HTTP_400_BAD_REQUEST
+                )
 
-            book = borrowing.book
+            book = Book.objects.select_for_update().get(pk=borrowing.book_id)
+
+            borrowing.actual_return_date = timezone.localdate()
+            borrowing.save(update_fields=["actual_return_date"])
+
             book.inventory += 1
-            book.save()
+            book.save(update_fields=["inventory"])
 
+        borrowing.book = book
         serializer = BorrowingReadSerializer(borrowing)
         return Response(serializer.data, status=status.HTTP_200_OK)
