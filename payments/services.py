@@ -66,3 +66,16 @@ def create_stripe_session(
         session_id=session.id,
         money_to_pay=amount,
     )
+
+
+def create_payment_session(
+    borrowing: Borrowing,
+    request: HttpRequest
+) -> Payment:
+    return create_stripe_session(
+        borrowing=borrowing,
+        request=request,
+        amount=calculate_borrowing_price(borrowing),
+        payment_type=Payment.Type.PAYMENT,
+        product_name=f"Borrowing: {borrowing.book.title}"
+    )
