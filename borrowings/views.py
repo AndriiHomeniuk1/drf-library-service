@@ -7,6 +7,7 @@ from rest_framework.response import Response
 from rest_framework import viewsets, mixins, status
 from rest_framework.permissions import IsAuthenticated
 
+from books.models import Book
 from borrowings.models import Borrowing
 from borrowings.serializers import (
     BorrowingReadSerializer,
@@ -97,12 +98,14 @@ class BorrowingViewSet(
                     status=status.HTTP_400_BAD_REQUEST
                 )
 
+            book = Book.objects.select_for_update().get(pk=borrowing.book_id)
+
             borrowing.actual_return_date = timezone.localdate()
             borrowing.save(update_fields=["actual_return_date"])
 
-            book = borrowing.book
             book.inventory += 1
             book.save(update_fields=["inventory"])
 
+        borrowing.book = book
         serializer = BorrowingReadSerializer(borrowing)
         return Response(serializer.data, status=status.HTTP_200_OK)
