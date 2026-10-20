@@ -79,3 +79,16 @@ def create_payment_session(
         payment_type=Payment.Type.PAYMENT,
         product_name=f"Borrowing: {borrowing.book.title}"
     )
+
+
+def create_fine_session(
+    borrowing: Borrowing,
+    request: HttpRequest
+) -> Payment:
+    return create_stripe_session(
+        borrowing=borrowing,
+        request=request,
+        amount=calculate_fine(borrowing),
+        payment_type=Payment.Type.FINE,
+        product_name=f"Fine for overdue: {borrowing.book.title}"
+    )
