@@ -27,11 +27,12 @@ def calculate_fine(borrowing: Borrowing) -> Decimal:
 
 def create_stripe_session(
     borrowing: Borrowing,
-    request: HttpRequest
+    request: HttpRequest,
+    amount: Decimal,
+    payment_type: str,
+    product_name: str,
 ) -> Payment:
     stripe.api_key = settings.STRIPE_SECRET_KEY
-
-    amount = calculate_borrowing_price(borrowing)
 
     success_url = (
         request.build_absolute_uri(reverse("payments:payment-success"))
@@ -47,9 +48,7 @@ def create_stripe_session(
             {
                 "price_data": {
                     "currency": "usd",
-                    "product_data": {
-                        "name": f"Borrowing: {borrowing.book.title}",
-                    },
+                    "product_data": {"name": product_name},
                     "unit_amount": int(amount * 100),
                 },
                 "quantity": 1,
@@ -61,7 +60,7 @@ def create_stripe_session(
 
     return Payment.objects.create(
         status=Payment.Status.PENDING,
-        type=Payment.Type.PAYMENT,
+        type=payment_type,
         borrowing=borrowing,
         session_url=session.url,
         session_id=session.id,
