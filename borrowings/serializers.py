@@ -42,11 +42,26 @@ class BorrowingCreateSerializer(serializers.ModelSerializer):
             "expected_return_date",
             "actual_return_date",
             "book",
-            "user"
+            "user",
         )
         read_only_fields = ("id", "user")
 
     def validate(self, attrs):
+        request = self.context["request"]
+
+        if Payment.objects.filter(
+            borrowing__user=request.user,
+            status=Payment.Status.PENDING
+        ).exists():
+            raise ValidationError(
+                {
+                    "detail": (
+                        "You have pending payments. Please pay them before "
+                        "borrowing new books."
+                    )
+                }
+            )
+
         Borrowing.validate_book_inventory(attrs["book"], ValidationError)
         Borrowing.validate_return_dates(
             attrs["borrow_date"],
