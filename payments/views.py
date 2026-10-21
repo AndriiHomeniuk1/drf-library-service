@@ -7,6 +7,7 @@ from rest_framework.decorators import action
 from rest_framework.permissions import IsAuthenticated, AllowAny
 from rest_framework.response import Response
 
+from notifications.telegram import send_telegram_message
 from payments.models import Payment
 from payments.serializers import (
     PaymentListSerializer,
@@ -55,7 +56,12 @@ class PaymentViewSet(
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
-        payment = Payment.objects.filter(session_id=session_id).first()
+        payment = (
+            Payment.objects
+            .select_related("borrowing__user")
+            .filter(session_id=session_id)
+            .first()
+        )
 
         if payment is None:
             return Response(
@@ -87,6 +93,16 @@ class PaymentViewSet(
 
         payment.status = Payment.Status.PAID
         payment.save(update_fields=["status"])
+
+        send_telegram_message(
+            "Payment successful\n\n"
+            f"Payment id: {payment.pk}\n"
+            f"Type: {payment.get_type_display()}\n"
+            f"Borrowing id: {payment.borrowing_id}\n"
+            f"User: {payment.borrowing.user.email}\n"
+            f"Amount: ${payment.money_to_pay}"
+        )
+
         return Response(
             {"detail": "Payment successful."},
             status=status.HTTP_200_OK,
