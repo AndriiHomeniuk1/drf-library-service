@@ -15,7 +15,7 @@ from borrowings.serializers import (
     EmptySerializer,
 )
 from notifications.telegram import send_telegram_message
-from payments.services import create_stripe_session
+from payments.services import create_payment_session, create_fine_session
 
 
 class BorrowingViewSet(
@@ -63,7 +63,7 @@ class BorrowingViewSet(
 
         with transaction.atomic():
             borrowing = serializer.save(user=request.user)
-            create_stripe_session(borrowing, request)
+            create_payment_session(borrowing, request)
 
         send_telegram_message(
             "New borrowing created\n\n"
@@ -105,6 +105,9 @@ class BorrowingViewSet(
 
             book.inventory += 1
             book.save(update_fields=["inventory"])
+
+            if borrowing.actual_return_date > borrowing.expected_return_date:
+                create_fine_session(borrowing, request)
 
         borrowing.book = book
         serializer = BorrowingReadSerializer(borrowing)
