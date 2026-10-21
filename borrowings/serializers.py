@@ -40,7 +40,6 @@ class BorrowingCreateSerializer(serializers.ModelSerializer):
             "id",
             "borrow_date",
             "expected_return_date",
-            "actual_return_date",
             "book",
             "user",
         )
@@ -66,8 +65,7 @@ class BorrowingCreateSerializer(serializers.ModelSerializer):
         Borrowing.validate_return_dates(
             attrs["borrow_date"],
             attrs["expected_return_date"],
-            attrs.get("actual_return_date"),
-            ValidationError
+            error_to_raise=ValidationError,
         )
         return attrs
 
