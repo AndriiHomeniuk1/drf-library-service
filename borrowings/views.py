@@ -16,8 +16,50 @@ from borrowings.serializers import (
 )
 from notifications.telegram import send_telegram_message
 from payments.services import create_payment_session, create_fine_session
+from drf_spectacular.types import OpenApiTypes
+from drf_spectacular.utils import (
+    OpenApiParameter,
+    extend_schema,
+    extend_schema_view,
+)
 
 
+@extend_schema_view(
+    list=extend_schema(
+        summary="List borrowings",
+        description=(
+            "Regular users see only their own borrowings. "
+            "Admins see all borrowings and can filter by user."
+        ),
+        parameters=[
+            OpenApiParameter(
+                name="is_active",
+                type=OpenApiTypes.BOOL,
+                location=OpenApiParameter.QUERY,
+                description=(
+                    "true: only borrowings that are not returned yet; "
+                    "false: only returned borrowings."
+                ),
+            ),
+            OpenApiParameter(
+                name="user_id",
+                type=OpenApiTypes.INT,
+                location=OpenApiParameter.QUERY,
+                description="Admins only: filter by user id.",
+            ),
+        ],
+    ),
+    retrieve=extend_schema(summary="Get a specific borrowing"),
+    create=extend_schema(
+        summary="Create a borrowing",
+        description=(
+            "Decreases book inventory by 1 and creates a Stripe payment "
+            "session. Denied if the user has pending payments."
+        ),
+        request=BorrowingCreateSerializer,
+        responses={201: BorrowingReadSerializer},
+    ),
+)
 class BorrowingViewSet(
     mixins.ListModelMixin,
     mixins.RetrieveModelMixin,
