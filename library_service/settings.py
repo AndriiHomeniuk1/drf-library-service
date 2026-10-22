@@ -192,6 +192,7 @@ SPECTACULAR_SETTINGS = {
         "defaultModelsExpandDepth": 2,
         "defaultModelExpandDepth": 2,
     },
+    "REDOC_DIST": "https://cdn.jsdelivr.net/npm/redoc@2.1.5",
 }
 
 TELEGRAM_BOT_TOKEN = env("TELEGRAM_BOT_TOKEN", default="")
