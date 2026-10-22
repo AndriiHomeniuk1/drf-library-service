@@ -6,6 +6,7 @@ from rest_framework.decorators import action
 from rest_framework.response import Response
 from rest_framework import viewsets, mixins, status
 from rest_framework.permissions import IsAuthenticated
+from rest_framework.exceptions import ValidationError
 
 from books.models import Book
 from borrowings.models import Borrowing
@@ -74,16 +75,26 @@ class BorrowingViewSet(
 
         if not self.request.user.is_staff:
             queryset = queryset.filter(user=self.request.user)
-        else:
+
+        if self.action == "list":
             user_id = self.request.query_params.get("user_id")
-            if user_id is not None:
+            if self.request.user.is_staff and user_id is not None:
+                if not user_id.isdigit():
+                    raise ValidationError(
+                        {"user_id": "Must be an integer."}
+                    )
                 queryset = queryset.filter(user_id=user_id)
 
-        is_active = self.request.query_params.get("is_active")
-        if is_active is not None:
-            is_active_bool = is_active.lower() == "true"
-            queryset = queryset.filter(
-                actual_return_date__isnull=is_active_bool)
+            is_active = self.request.query_params.get("is_active")
+            if is_active is not None:
+                value = is_active.lower()
+                if value not in ("true", "false"):
+                    raise ValidationError(
+                        {"is_active": "Accepted values: true, false."}
+                    )
+                queryset = queryset.filter(
+                    actual_return_date__isnull=(value == "true")
+                )
 
         if self.action in ("list", "retrieve"):
             queryset = queryset.select_related("book").prefetch_related(
