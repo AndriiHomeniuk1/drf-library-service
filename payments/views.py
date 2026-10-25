@@ -2,6 +2,10 @@ import logging
 
 import stripe
 from django.conf import settings
+from drf_spectacular.utils import (
+    extend_schema,
+    extend_schema_view,
+)
 from rest_framework import mixins, status, viewsets
 from rest_framework.decorators import action
 from rest_framework.permissions import IsAuthenticated, AllowAny
@@ -18,6 +22,19 @@ from payments.serializers import (
 logger = logging.getLogger(__name__)
 
 
+@extend_schema_view(
+    list=extend_schema(
+        summary="List payments",
+        description=(
+            "Regular users see only payments of their own borrowings. "
+            "Admins see all payments."
+        ),
+    ),
+    retrieve=extend_schema(
+        summary="Get a specific payment",
+        description="Includes detailed borrowing info with the book.",
+    ),
+)
 class PaymentViewSet(
     mixins.ListModelMixin,
     mixins.RetrieveModelMixin,
