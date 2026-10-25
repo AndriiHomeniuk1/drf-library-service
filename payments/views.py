@@ -2,7 +2,10 @@ import logging
 
 import stripe
 from django.conf import settings
+from drf_spectacular.types import OpenApiTypes
 from drf_spectacular.utils import (
+    OpenApiParameter,
+    OpenApiResponse,
     extend_schema,
     extend_schema_view,
 )
@@ -58,6 +61,36 @@ class PaymentViewSet(
             queryset = queryset.select_related("borrowing__book")
         return queryset
 
+    @extend_schema(
+        summary="Confirm a Stripe payment",
+        description=(
+            "Stripe redirects the user here after checkout. The session is "
+            "verified in Stripe and, if paid, the payment is marked as PAID "
+            "and a Telegram notification is sent. Open without a token."
+        ),
+        parameters=[
+            OpenApiParameter(
+                name="session_id",
+                type=OpenApiTypes.STR,
+                location=OpenApiParameter.QUERY,
+                required=True,
+                description="Stripe Checkout session id.",
+            ),
+        ],
+        auth=[],
+        responses={
+            200: OpenApiResponse(
+                description="Payment confirmed (or already confirmed)."
+            ),
+            400: OpenApiResponse(
+                description="session_id missing or payment not completed."
+            ),
+            404: OpenApiResponse(description="Payment not found."),
+            502: OpenApiResponse(
+                description="Could not verify payment with Stripe."
+            ),
+        },
+    )
     @action(
         detail=False,
         methods=["get"],
