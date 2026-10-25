@@ -20,6 +20,7 @@ from payments.services import create_payment_session, create_fine_session
 from drf_spectacular.types import OpenApiTypes
 from drf_spectacular.utils import (
     OpenApiParameter,
+    OpenApiResponse,
     extend_schema,
     extend_schema_view,
 )
@@ -135,6 +136,20 @@ class BorrowingViewSet(
         )
         return Response(read_serializer.data, status=status.HTTP_201_CREATED)
 
+    @extend_schema(
+        summary="Return a borrowing",
+        description=(
+            "Sets actual_return_date to today and increases the book "
+            "inventory by 1. If returned after expected_return_date, "
+            "a FINE payment is created."
+        ),
+        request=None,
+        responses={
+            200: BorrowingReadSerializer,
+            400: OpenApiResponse(description="Already returned."),
+            404: OpenApiResponse(description="Borrowing not found."),
+        },
+    )
     @action(detail=True, methods=["post"], url_path="return")
     def return_borrowing(self, request, pk=None):
         with transaction.atomic():
