@@ -158,6 +158,15 @@ class PaymentViewSet(
             status=status.HTTP_200_OK,
         )
 
+    @extend_schema(
+        summary="Payment cancelled",
+        description=(
+            "Stripe redirects the user here if checkout was cancelled. "
+            "The payment can be made later: the session is valid for 24 hours."
+        ),
+        auth=[],
+        responses={200: OpenApiResponse(description="Cancellation message.")},
+    )
     @action(
         detail=False,
         methods=["get"],
