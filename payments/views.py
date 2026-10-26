@@ -2,6 +2,13 @@ import logging
 
 import stripe
 from django.conf import settings
+from drf_spectacular.types import OpenApiTypes
+from drf_spectacular.utils import (
+    OpenApiParameter,
+    OpenApiResponse,
+    extend_schema,
+    extend_schema_view,
+)
 from rest_framework import mixins, status, viewsets
 from rest_framework.decorators import action
 from rest_framework.permissions import IsAuthenticated, AllowAny
@@ -18,6 +25,19 @@ from payments.serializers import (
 logger = logging.getLogger(__name__)
 
 
+@extend_schema_view(
+    list=extend_schema(
+        summary="List payments",
+        description=(
+            "Regular users see only payments of their own borrowings. "
+            "Admins see all payments."
+        ),
+    ),
+    retrieve=extend_schema(
+        summary="Get the payment",
+        description="Includes detailed borrowing info with the book.",
+    ),
+)
 class PaymentViewSet(
     mixins.ListModelMixin,
     mixins.RetrieveModelMixin,
@@ -41,6 +61,36 @@ class PaymentViewSet(
             queryset = queryset.select_related("borrowing__book")
         return queryset
 
+    @extend_schema(
+        summary="Confirm a Stripe payment",
+        description=(
+            "Stripe redirects the user here after checkout. The session is "
+            "verified in Stripe and, if paid, the payment is marked as PAID "
+            "and a Telegram notification is sent. Open without a token."
+        ),
+        parameters=[
+            OpenApiParameter(
+                name="session_id",
+                type=OpenApiTypes.STR,
+                location=OpenApiParameter.QUERY,
+                required=True,
+                description="Stripe Checkout session id.",
+            ),
+        ],
+        auth=[],
+        responses={
+            200: OpenApiResponse(
+                description="Payment confirmed (or already confirmed)."
+            ),
+            400: OpenApiResponse(
+                description="session_id missing or payment not completed."
+            ),
+            404: OpenApiResponse(description="Payment not found."),
+            502: OpenApiResponse(
+                description="Could not verify payment with Stripe."
+            ),
+        },
+    )
     @action(
         detail=False,
         methods=["get"],
@@ -108,6 +158,15 @@ class PaymentViewSet(
             status=status.HTTP_200_OK,
         )
 
+    @extend_schema(
+        summary="Payment cancelled",
+        description=(
+            "Stripe redirects the user here if checkout was cancelled. "
+            "The payment can be made later: the session is valid for 24 hours."
+        ),
+        auth=[],
+        responses={200: OpenApiResponse(description="Cancellation message.")},
+    )
     @action(
         detail=False,
         methods=["get"],

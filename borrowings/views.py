@@ -6,6 +6,7 @@ from rest_framework.decorators import action
 from rest_framework.response import Response
 from rest_framework import viewsets, mixins, status
 from rest_framework.permissions import IsAuthenticated
+from rest_framework.exceptions import ValidationError
 
 from books.models import Book
 from borrowings.models import Borrowing
@@ -16,8 +17,51 @@ from borrowings.serializers import (
 )
 from notifications.telegram import send_telegram_message
 from payments.services import create_payment_session, create_fine_session
+from drf_spectacular.types import OpenApiTypes
+from drf_spectacular.utils import (
+    OpenApiParameter,
+    OpenApiResponse,
+    extend_schema,
+    extend_schema_view,
+)
 
 
+@extend_schema_view(
+    list=extend_schema(
+        summary="List borrowings",
+        description=(
+            "Regular users see only their own borrowings. "
+            "Admins see all borrowings and can filter by user."
+        ),
+        parameters=[
+            OpenApiParameter(
+                name="is_active",
+                type=OpenApiTypes.BOOL,
+                location=OpenApiParameter.QUERY,
+                description=(
+                    "true: only borrowings that are not returned yet; "
+                    "false: only returned borrowings."
+                ),
+            ),
+            OpenApiParameter(
+                name="user_id",
+                type=OpenApiTypes.INT,
+                location=OpenApiParameter.QUERY,
+                description="Admins only: filter by user id.",
+            ),
+        ],
+    ),
+    retrieve=extend_schema(summary="Get the borrowing"),
+    create=extend_schema(
+        summary="Create a borrowing",
+        description=(
+            "Decreases book inventory by 1 and creates a Stripe payment "
+            "session. Denied if the user has pending payments."
+        ),
+        request=BorrowingCreateSerializer,
+        responses={201: BorrowingReadSerializer},
+    ),
+)
 class BorrowingViewSet(
     mixins.ListModelMixin,
     mixins.RetrieveModelMixin,
@@ -32,16 +76,26 @@ class BorrowingViewSet(
 
         if not self.request.user.is_staff:
             queryset = queryset.filter(user=self.request.user)
-        else:
+
+        if self.action == "list":
             user_id = self.request.query_params.get("user_id")
-            if user_id is not None:
+            if self.request.user.is_staff and user_id is not None:
+                if not user_id.isdigit():
+                    raise ValidationError(
+                        {"user_id": "Must be an integer."}
+                    )
                 queryset = queryset.filter(user_id=user_id)
 
-        is_active = self.request.query_params.get("is_active")
-        if is_active is not None:
-            is_active_bool = is_active.lower() == "true"
-            queryset = queryset.filter(
-                actual_return_date__isnull=is_active_bool)
+            is_active = self.request.query_params.get("is_active")
+            if is_active is not None:
+                value = is_active.lower()
+                if value not in ("true", "false"):
+                    raise ValidationError(
+                        {"is_active": "Accepted values: true, false."}
+                    )
+                queryset = queryset.filter(
+                    actual_return_date__isnull=(value == "true")
+                )
 
         if self.action in ("list", "retrieve"):
             queryset = queryset.select_related("book").prefetch_related(
@@ -82,6 +136,20 @@ class BorrowingViewSet(
         )
         return Response(read_serializer.data, status=status.HTTP_201_CREATED)
 
+    @extend_schema(
+        summary="Return the borrowing",
+        description=(
+            "Sets actual_return_date to today and increases the book "
+            "inventory by 1. If returned after expected_return_date, "
+            "a FINE payment is created."
+        ),
+        request=None,
+        responses={
+            200: BorrowingReadSerializer,
+            400: OpenApiResponse(description="Already returned."),
+            404: OpenApiResponse(description="Borrowing not found."),
+        },
+    )
     @action(detail=True, methods=["post"], url_path="return")
     def return_borrowing(self, request, pk=None):
         with transaction.atomic():
