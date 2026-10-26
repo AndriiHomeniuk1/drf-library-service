@@ -51,7 +51,7 @@ from drf_spectacular.utils import (
             ),
         ],
     ),
-    retrieve=extend_schema(summary="Get a specific borrowing"),
+    retrieve=extend_schema(summary="Get the borrowing"),
     create=extend_schema(
         summary="Create a borrowing",
         description=(
@@ -137,7 +137,7 @@ class BorrowingViewSet(
         return Response(read_serializer.data, status=status.HTTP_201_CREATED)
 
     @extend_schema(
-        summary="Return a borrowing",
+        summary="Return the borrowing",
         description=(
             "Sets actual_return_date to today and increases the book "
             "inventory by 1. If returned after expected_return_date, "
