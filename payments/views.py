@@ -34,7 +34,7 @@ logger = logging.getLogger(__name__)
         ),
     ),
     retrieve=extend_schema(
-        summary="Get a specific payment",
+        summary="Get the payment",
         description="Includes detailed borrowing info with the book.",
     ),
 )
