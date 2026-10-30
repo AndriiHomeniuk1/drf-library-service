@@ -6,7 +6,7 @@ from rest_framework import status
 from rest_framework.test import APITestCase
 
 from borrowings.tests.factories import sample_borrowing
-from payments.tests.factories import fake_stripe_session
+from payments.tests.factories import fake_stripe_session, sample_payment
 from users.tests.factories import sample_admin, sample_user
 
 LIST_URL = reverse("borrowings:borrowing-list")
@@ -139,3 +139,32 @@ class BorrowingListTests(BorrowingApiTestCase):
         self.assertEqual(
             self.ids(response), {self.active.pk, self.returned.pk}
         )
+
+
+class BorrowingRetrieveTests(BorrowingApiTestCase):
+    def test_user_can_retrieve_own_borrowing_with_book_and_payments(self):
+        borrowing = sample_borrowing(user=self.user)
+        payment = sample_payment(borrowing=borrowing)
+        self.client.force_authenticate(self.user)
+
+        response = self.client.get(detail_url(borrowing.pk))
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.data["book"]["title"], borrowing.book.title)
+        self.assertEqual(response.data["payments"][0]["id"], payment.pk)
+
+    def test_user_cannot_retrieve_foreign_borrowing(self):
+        borrowing = sample_borrowing(user=self.other_user)
+        self.client.force_authenticate(self.user)
+
+        response = self.client.get(detail_url(borrowing.pk))
+
+        self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
+
+    def test_admin_can_retrieve_any_borrowing(self):
+        borrowing = sample_borrowing(user=self.other_user)
+        self.client.force_authenticate(self.admin)
+
+        response = self.client.get(detail_url(borrowing.pk))
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
