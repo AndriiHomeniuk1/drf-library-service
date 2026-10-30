@@ -2,8 +2,10 @@ from unittest.mock import patch
 
 from django.urls import reverse
 from django.utils import timezone
+from rest_framework import status
 from rest_framework.test import APITestCase
 
+from borrowings.tests.factories import sample_borrowing
 from payments.tests.factories import fake_stripe_session
 from users.tests.factories import sample_admin, sample_user
 
@@ -40,3 +42,22 @@ class BorrowingApiTestCase(APITestCase):
         telegram_patcher = patch("borrowings.views.send_telegram_message")
         self.telegram = telegram_patcher.start()
         self.addCleanup(telegram_patcher.stop)
+
+
+class AnonymousBorrowingTests(BorrowingApiTestCase):
+    def test_list_requires_authentication(self):
+        response = self.client.get(LIST_URL)
+
+        self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
+
+    def test_create_requires_authentication(self):
+        response = self.client.post(LIST_URL, {})
+
+        self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
+
+    def test_return_requires_authentication(self):
+        borrowing = sample_borrowing(user=self.user)
+
+        response = self.client.post(return_url(borrowing.pk))
+
+        self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
