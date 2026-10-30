@@ -3,6 +3,7 @@ from decimal import Decimal
 from unittest.mock import patch
 
 import stripe
+from django.conf import settings
 from django.urls import reverse
 from django.utils import timezone
 from rest_framework import status
@@ -274,3 +275,89 @@ class BorrowingCreateTests(BorrowingApiTestCase):
         self.assertEqual(self.book.inventory, 3)
         self.assertEqual(Borrowing.objects.count(), 0)
         self.assertEqual(Payment.objects.count(), 0)
+
+
+class BorrowingReturnTests(BorrowingApiTestCase):
+    def setUp(self):
+        super().setUp()
+        self.book = sample_book(inventory=2, daily_fee=Decimal("1.50"))
+        self.client.force_authenticate(self.user)
+
+    def overdue_borrowing(self, days_late):
+        return sample_borrowing(
+            user=self.user,
+            book=self.book,
+            borrow_date=self.today - timedelta(days=days_late + 7),
+            expected_return_date=self.today - timedelta(days=days_late),
+        )
+
+    def test_return_sets_date_and_restores_inventory(self):
+        borrowing = sample_borrowing(user=self.user, book=self.book)
+
+        response = self.client.post(return_url(borrowing.pk))
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        borrowing.refresh_from_db()
+        self.book.refresh_from_db()
+        self.assertEqual(borrowing.actual_return_date, self.today)
+        self.assertEqual(self.book.inventory, 3)
+        self.assertEqual(response.data["book"]["inventory"], 3)
+
+    def test_return_on_time_creates_no_fine(self):
+        borrowing = sample_borrowing(user=self.user, book=self.book)
+
+        self.client.post(return_url(borrowing.pk))
+
+        self.assertEqual(Payment.objects.count(), 0)
+        self.stripe_create.assert_not_called()
+
+    def test_return_on_expected_date_creates_no_fine(self):
+        borrowing = sample_borrowing(
+            user=self.user,
+            book=self.book,
+            expected_return_date=self.today,
+        )
+
+        self.client.post(return_url(borrowing.pk))
+
+        self.assertEqual(Payment.objects.count(), 0)
+
+    def test_late_return_creates_fine_payment(self):
+        borrowing = self.overdue_borrowing(days_late=3)
+
+        response = self.client.post(return_url(borrowing.pk))
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        fine = Payment.objects.get(borrowing=borrowing)
+        expected = Decimal("1.50") * 3 * settings.FINE_MULTIPLIER
+        self.assertEqual(fine.type, Payment.Type.FINE)
+        self.assertEqual(fine.status, Payment.Status.PENDING)
+        self.assertEqual(fine.money_to_pay, expected)
+        self.assertEqual(response.data["payments"][0]["id"], fine.pk)
+
+    def test_cannot_return_twice(self):
+        borrowing = sample_borrowing(user=self.user, book=self.book)
+        self.client.post(return_url(borrowing.pk))
+
+        response = self.client.post(return_url(borrowing.pk))
+
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.book.refresh_from_db()
+        self.assertEqual(self.book.inventory, 3)
+
+    def test_user_cannot_return_foreign_borrowing(self):
+        borrowing = sample_borrowing(user=self.other_user, book=self.book)
+
+        response = self.client.post(return_url(borrowing.pk))
+
+        self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
+        borrowing.refresh_from_db()
+        self.assertIsNone(borrowing.actual_return_date)
+
+    def test_admin_can_return_any_borrowing(self):
+        borrowing = sample_borrowing(user=self.other_user, book=self.book)
+        self.client.force_authenticate(self.admin)
+
+        response = self.client.post(return_url(borrowing.pk))
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
