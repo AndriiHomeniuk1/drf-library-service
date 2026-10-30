@@ -61,3 +61,81 @@ class AnonymousBorrowingTests(BorrowingApiTestCase):
         response = self.client.post(return_url(borrowing.pk))
 
         self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
+
+
+class BorrowingListTests(BorrowingApiTestCase):
+    def setUp(self):
+        super().setUp()
+        self.active = sample_borrowing(user=self.user)
+        self.returned = sample_borrowing(
+            user=self.user, actual_return_date=self.today
+        )
+        self.others = sample_borrowing(user=self.other_user)
+
+    def ids(self, response):
+        return {item["id"] for item in response.data["results"]}
+
+    def test_user_sees_only_own_borrowings(self):
+        self.client.force_authenticate(self.user)
+
+        response = self.client.get(LIST_URL)
+
+        self.assertEqual(
+            self.ids(response), {self.active.pk, self.returned.pk}
+        )
+
+    def test_admin_sees_all_borrowings(self):
+        self.client.force_authenticate(self.admin)
+
+        response = self.client.get(LIST_URL)
+
+        self.assertEqual(
+            self.ids(response),
+            {self.active.pk, self.returned.pk, self.others.pk},
+        )
+
+    def test_filter_is_active_true(self):
+        self.client.force_authenticate(self.user)
+
+        response = self.client.get(LIST_URL, {"is_active": "true"})
+
+        self.assertEqual(self.ids(response), {self.active.pk})
+
+    def test_filter_is_active_false(self):
+        self.client.force_authenticate(self.user)
+
+        response = self.client.get(LIST_URL, {"is_active": "false"})
+
+        self.assertEqual(self.ids(response), {self.returned.pk})
+
+    def test_invalid_is_active_is_rejected(self):
+        self.client.force_authenticate(self.user)
+
+        response = self.client.get(LIST_URL, {"is_active": "maybe"})
+
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertIn("is_active", response.data)
+
+    def test_admin_can_filter_by_user_id(self):
+        self.client.force_authenticate(self.admin)
+
+        response = self.client.get(LIST_URL, {"user_id": self.other_user.pk})
+
+        self.assertEqual(self.ids(response), {self.others.pk})
+
+    def test_invalid_user_id_is_rejected_for_admin(self):
+        self.client.force_authenticate(self.admin)
+
+        response = self.client.get(LIST_URL, {"user_id": "abc"})
+
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertIn("user_id", response.data)
+
+    def test_user_id_filter_is_ignored_for_regular_user(self):
+        self.client.force_authenticate(self.user)
+
+        response = self.client.get(LIST_URL, {"user_id": self.other_user.pk})
+
+        self.assertEqual(
+            self.ids(response), {self.active.pk, self.returned.pk}
+        )
