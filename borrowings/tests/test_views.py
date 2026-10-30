@@ -1,13 +1,20 @@
+from datetime import timedelta
+from decimal import Decimal
 from unittest.mock import patch
 
+import stripe
 from django.urls import reverse
 from django.utils import timezone
 from rest_framework import status
 from rest_framework.test import APITestCase
 
+from books.tests.factories import sample_book
+from borrowings.models import Borrowing
 from borrowings.tests.factories import sample_borrowing
+from payments.models import Payment
 from payments.tests.factories import fake_stripe_session, sample_payment
 from users.tests.factories import sample_admin, sample_user
+
 
 LIST_URL = reverse("borrowings:borrowing-list")
 
@@ -168,3 +175,102 @@ class BorrowingRetrieveTests(BorrowingApiTestCase):
         response = self.client.get(detail_url(borrowing.pk))
 
         self.assertEqual(response.status_code, status.HTTP_200_OK)
+
+
+class BorrowingCreateTests(BorrowingApiTestCase):
+    def setUp(self):
+        super().setUp()
+        self.book = sample_book(inventory=3, daily_fee=Decimal("2.00"))
+        self.payload = {
+            "borrow_date": self.today,
+            "expected_return_date": self.today + timedelta(days=3),
+            "book": self.book.pk,
+        }
+        self.client.force_authenticate(self.user)
+
+    def test_create_borrowing(self):
+        response = self.client.post(LIST_URL, self.payload)
+
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        borrowing = Borrowing.objects.get(pk=response.data["id"])
+        self.assertEqual(borrowing.user, self.user)
+
+    def test_create_decreases_inventory_and_returns_fresh_book(self):
+        response = self.client.post(LIST_URL, self.payload)
+
+        self.book.refresh_from_db()
+        self.assertEqual(self.book.inventory, 2)
+        self.assertEqual(response.data["book"]["inventory"], 2)
+
+    def test_create_makes_pending_payment_for_rental_price(self):
+        response = self.client.post(LIST_URL, self.payload)
+
+        payment = Payment.objects.get()
+        self.assertEqual(payment.type, Payment.Type.PAYMENT)
+        self.assertEqual(payment.status, Payment.Status.PENDING)
+        self.assertEqual(payment.money_to_pay, Decimal("6.00"))
+        self.assertEqual(response.data["payments"][0]["id"], payment.pk)
+
+    def test_create_sends_telegram_notification(self):
+        self.client.post(LIST_URL, self.payload)
+
+        self.telegram.assert_called_once()
+
+    def test_user_from_payload_is_ignored(self):
+        self.payload["user"] = self.other_user.pk
+
+        response = self.client.post(LIST_URL, self.payload)
+
+        borrowing = Borrowing.objects.get(pk=response.data["id"])
+        self.assertEqual(borrowing.user, self.user)
+
+    def test_out_of_stock_book_is_rejected(self):
+        self.book.inventory = 0
+        self.book.save()
+
+        response = self.client.post(LIST_URL, self.payload)
+
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertEqual(Borrowing.objects.count(), 0)
+        self.stripe_create.assert_not_called()
+
+    def test_invalid_dates_are_rejected(self):
+        self.payload["expected_return_date"] = self.today - timedelta(days=1)
+
+        response = self.client.post(LIST_URL, self.payload)
+
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertEqual(Borrowing.objects.count(), 0)
+
+    def test_pending_payment_blocks_new_borrowing(self):
+        sample_payment(
+            borrowing=sample_borrowing(user=self.user),
+            status=Payment.Status.PENDING,
+        )
+
+        response = self.client.post(LIST_URL, self.payload)
+
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.book.refresh_from_db()
+        self.assertEqual(self.book.inventory, 3)
+
+    def test_paid_payment_does_not_block_new_borrowing(self):
+        sample_payment(
+            borrowing=sample_borrowing(user=self.user),
+            status=Payment.Status.PAID,
+        )
+
+        response = self.client.post(LIST_URL, self.payload)
+
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+
+    def test_stripe_failure_rolls_back_borrowing_and_inventory(self):
+        self.stripe_create.side_effect = stripe.StripeError("Stripe is down")
+
+        with self.assertRaises(stripe.StripeError):
+            self.client.post(LIST_URL, self.payload)
+
+        self.book.refresh_from_db()
+        self.assertEqual(self.book.inventory, 3)
+        self.assertEqual(Borrowing.objects.count(), 0)
+        self.assertEqual(Payment.objects.count(), 0)
