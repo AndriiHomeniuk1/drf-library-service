@@ -55,3 +55,37 @@ class PaymentListTests(PaymentApiTestCase):
         response = self.client.get(LIST_URL)
 
         self.assertEqual(self.ids(response), {self.own.pk, self.foreign.pk})
+
+
+class PaymentRetrieveTests(PaymentApiTestCase):
+    def setUp(self):
+        super().setUp()
+        self.payment = sample_payment(
+            borrowing=sample_borrowing(user=self.user)
+        )
+
+    def test_user_can_retrieve_own_payment_with_borrowing_details(self):
+        self.client.force_authenticate(self.user)
+
+        response = self.client.get(detail_url(self.payment.pk))
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        borrowing = response.data["borrowing"]
+        self.assertEqual(borrowing["id"], self.payment.borrowing_id)
+        self.assertEqual(
+            borrowing["book"]["title"], self.payment.borrowing.book.title
+        )
+
+    def test_user_cannot_retrieve_foreign_payment(self):
+        self.client.force_authenticate(self.other_user)
+
+        response = self.client.get(detail_url(self.payment.pk))
+
+        self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
+
+    def test_admin_can_retrieve_any_payment(self):
+        self.client.force_authenticate(self.admin)
+
+        response = self.client.get(detail_url(self.payment.pk))
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
