@@ -28,21 +28,33 @@ class SendTelegramMessageTests(SimpleTestCase):
     def test_network_error_returns_false(self):
         self.post.side_effect = requests.ConnectionError("no network")
 
-        self.assertFalse(send_telegram_message("Hello"))
+        with self.assertLogs("notifications.telegram", level="ERROR"):
+            result = send_telegram_message("Hello")
+
+        self.assertFalse(result)
 
     def test_http_error_returns_false(self):
         response = MagicMock()
         response.raise_for_status.side_effect = requests.HTTPError("401")
         self.post.return_value = response
 
-        self.assertFalse(send_telegram_message("Hello"))
+        with self.assertLogs("notifications.telegram", level="ERROR"):
+            result = send_telegram_message("Hello")
+
+        self.assertFalse(result)
 
     @override_settings(TELEGRAM_BOT_TOKEN="")
     def test_missing_token_skips_sending(self):
-        self.assertFalse(send_telegram_message("Hello"))
+        with self.assertLogs("notifications.telegram", level="WARNING"):
+            result = send_telegram_message("Hello")
+
+        self.assertFalse(result)
         self.post.assert_not_called()
 
     @override_settings(TELEGRAM_CHAT_ID="")
     def test_missing_chat_id_skips_sending(self):
-        self.assertFalse(send_telegram_message("Hello"))
+        with self.assertLogs("notifications.telegram", level="WARNING"):
+            result = send_telegram_message("Hello")
+
+        self.assertFalse(result)
         self.post.assert_not_called()
