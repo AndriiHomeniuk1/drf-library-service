@@ -181,3 +181,11 @@ class PaymentSuccessTests(PaymentApiTestCase):
         self.payment.refresh_from_db()
         self.assertEqual(self.payment.status, Payment.Status.PENDING)
         self.telegram.assert_not_called()
+
+
+class PaymentCancelTests(APITestCase):
+    def test_cancel_is_open_and_explains_payment_can_be_made_later(self):
+        response = self.client.get(CANCEL_URL)
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertIn("cancelled", response.data["detail"])
