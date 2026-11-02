@@ -33,6 +33,6 @@ class Payment(models.Model):
 
     def __str__(self) -> str:
         return (
-            f"{self.type} #{self.pk} for borrowing #{self.borrowing_id} "
-            f"({self.status})"
+            f"{self.get_type_display()} #{self.pk} for borrowing "
+            f"#{self.borrowing_id} ({self.get_status_display()})"
         )
