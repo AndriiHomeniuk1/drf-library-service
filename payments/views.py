@@ -43,7 +43,7 @@ class PaymentViewSet(
     mixins.RetrieveModelMixin,
     viewsets.GenericViewSet
 ):
-    queryset = Payment.objects
+    queryset = Payment.objects.all()
     permission_classes = (IsAuthenticated,)
 
     def get_serializer_class(self):
