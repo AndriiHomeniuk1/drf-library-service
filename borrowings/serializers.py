@@ -49,8 +49,7 @@ class BorrowingCreateSerializer(serializers.ModelSerializer):
         request = self.context["request"]
 
         if Payment.objects.filter(
-            borrowing__user=request.user,
-            status=Payment.Status.PENDING
+            borrowing__user=request.user, status=Payment.Status.PENDING
         ).exists():
             raise ValidationError(
                 {

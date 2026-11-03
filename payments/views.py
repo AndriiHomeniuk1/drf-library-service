@@ -21,7 +21,6 @@ from payments.serializers import (
     PaymentRetrieveSerializer,
 )
 
-
 logger = logging.getLogger(__name__)
 
 
@@ -41,7 +40,7 @@ logger = logging.getLogger(__name__)
 class PaymentViewSet(
     mixins.ListModelMixin,
     mixins.RetrieveModelMixin,
-    viewsets.GenericViewSet
+    viewsets.GenericViewSet,
 ):
     queryset = Payment.objects.all()
     permission_classes = (IsAuthenticated,)
@@ -87,7 +86,7 @@ class PaymentViewSet(
             ),
             404: OpenApiResponse(description="Payment not found."),
             502: OpenApiResponse(
-                description="Could not verify payment with Stripe."
+                description="Could not verify payment with Stripe.",
             ),
         },
     )
@@ -107,8 +106,7 @@ class PaymentViewSet(
             )
 
         payment = (
-            Payment.objects
-            .select_related("borrowing__user")
+            Payment.objects.select_related("borrowing__user")
             .filter(session_id=session_id)
             .first()
         )

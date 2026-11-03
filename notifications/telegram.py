@@ -3,7 +3,6 @@ import logging
 import requests
 from django.conf import settings
 
-
 logger = logging.getLogger(__name__)
 
 TELEGRAM_API_URL = "https://api.telegram.org/bot{token}/sendMessage"

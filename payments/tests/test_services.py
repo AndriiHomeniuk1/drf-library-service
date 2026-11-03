@@ -78,8 +78,7 @@ class StripeSessionTests(TestCase):
         patcher = patch(
             "payments.services.stripe.checkout.Session.create",
             return_value=fake_stripe_session(
-                "cs_test_42",
-                "https://pay.test/42"
+                "cs_test_42", "https://pay.test/42"
             ),
         )
         self.stripe_create = patcher.start()
@@ -101,8 +100,7 @@ class StripeSessionTests(TestCase):
         self.assertEqual(item["price_data"]["currency"], "usd")
         self.assertEqual(item["price_data"]["unit_amount"], 1234)
         self.assertEqual(
-            item["price_data"]["product_data"]["name"],
-            "Test product"
+            item["price_data"]["product_data"]["name"], "Test product"
         )
 
     def test_success_and_cancel_urls_point_to_our_endpoints(self):

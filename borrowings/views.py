@@ -66,7 +66,7 @@ class BorrowingViewSet(
     mixins.ListModelMixin,
     mixins.RetrieveModelMixin,
     mixins.CreateModelMixin,
-    viewsets.GenericViewSet
+    viewsets.GenericViewSet,
 ):
     queryset = Borrowing.objects
     permission_classes = (IsAuthenticated,)
@@ -81,9 +81,7 @@ class BorrowingViewSet(
             user_id = self.request.query_params.get("user_id")
             if self.request.user.is_staff and user_id is not None:
                 if not user_id.isdigit():
-                    raise ValidationError(
-                        {"user_id": "Must be an integer."}
-                    )
+                    raise ValidationError({"user_id": "Must be an integer."})
                 queryset = queryset.filter(user_id=user_id)
 
             is_active = self.request.query_params.get("is_active")
@@ -131,8 +129,7 @@ class BorrowingViewSet(
         borrowing.book.refresh_from_db()
 
         read_serializer = BorrowingReadSerializer(
-            borrowing,
-            context=self.get_serializer_context()
+            borrowing, context=self.get_serializer_context()
         )
         return Response(read_serializer.data, status=status.HTTP_201_CREATED)
 
@@ -155,15 +152,13 @@ class BorrowingViewSet(
         with transaction.atomic():
             borrowing = get_object_or_404(
                 self.get_queryset().select_for_update(),
-                pk=pk
+                pk=pk,
             )
 
             if borrowing.actual_return_date is not None:
                 return Response(
-                    {
-                        "detail": "This borrowing has already been returned."
-                    },
-                    status=status.HTTP_400_BAD_REQUEST
+                    {"detail": "This borrowing has already been returned."},
+                    status=status.HTTP_400_BAD_REQUEST,
                 )
 
             book = Book.objects.select_for_update().get(pk=borrowing.book_id)

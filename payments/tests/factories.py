@@ -20,8 +20,8 @@ def sample_payment(**params):
 
 
 def fake_stripe_session(
-        session_id="cs_test_1",
-        url="https://checkout.stripe.test/pay/cs_test_1",
+    session_id="cs_test_1",
+    url="https://checkout.stripe.test/pay/cs_test_1",
 ):
     """
     Stand-in for the object returned by `stripe.checkout.Session.create`.

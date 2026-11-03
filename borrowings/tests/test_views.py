@@ -16,7 +16,6 @@ from payments.models import Payment
 from payments.tests.factories import fake_stripe_session, sample_payment
 from users.tests.factories import sample_admin, sample_user
 
-
 LIST_URL = reverse("borrowings:borrowing-list")
 
 

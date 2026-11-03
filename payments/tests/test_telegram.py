@@ -20,10 +20,7 @@ class SendTelegramMessageTests(SimpleTestCase):
         self.post.assert_called_once()
         args, kwargs = self.post.call_args
         self.assertIn("bottest-token/sendMessage", args[0])
-        self.assertEqual(
-            kwargs["json"],
-            {"chat_id": "12345", "text": "Hello"}
-        )
+        self.assertEqual(kwargs["json"], {"chat_id": "12345", "text": "Hello"})
 
     def test_network_error_returns_false(self):
         self.post.side_effect = requests.ConnectionError("no network")

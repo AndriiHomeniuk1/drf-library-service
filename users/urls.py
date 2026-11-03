@@ -5,9 +5,8 @@ from users.views import (
     DocumentedTokenObtainPairView,
     DocumentedTokenRefreshView,
     DocumentedTokenVerifyView,
-    ManageUserView
+    ManageUserView,
 )
-
 
 app_name = "users"
 
@@ -16,17 +15,17 @@ urlpatterns = [
     path(
         "token/",
         DocumentedTokenObtainPairView.as_view(),
-        name="token_obtain_pair"
+        name="token_obtain_pair",
     ),
     path(
         "token/refresh/",
         DocumentedTokenRefreshView.as_view(),
-        name="token_refresh"
+        name="token_refresh",
     ),
     path(
         "token/verify/",
         DocumentedTokenVerifyView.as_view(),
-        name="token_verify"
+        name="token_verify",
     ),
-    path("me/", ManageUserView.as_view(), name="manage_user")
+    path("me/", ManageUserView.as_view(), name="manage_user"),
 ]

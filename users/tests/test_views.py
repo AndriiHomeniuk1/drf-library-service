@@ -5,7 +5,6 @@ from rest_framework.test import APITestCase
 
 from users.tests.factories import sample_user
 
-
 User = get_user_model()
 
 CREATE_URL = reverse("users:create")
@@ -75,8 +74,7 @@ class TokenAuthenticationTests(APITestCase):
         token = self.client.post(TOKEN_URL, self.credentials).data["access"]
 
         response = self.client.get(
-            MANAGE_URL,
-            HTTP_AUTHORIZE=f"Bearer {token}"
+            MANAGE_URL, HTTP_AUTHORIZE=f"Bearer {token}"
         )
 
         self.assertEqual(response.status_code, status.HTTP_200_OK)
