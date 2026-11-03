@@ -1,0 +1,13 @@
+[flake8]
+inline-quotes = double
+max-line-length = 79
+max-complexity = 18
+select = B,B9,C,E,F,W,Q0,N8,VNE
+ignore = E203, W503, B907
+exclude =
+    **migrations
+    venv
+    .venv
+per-file-ignores =
+    library_service/settings.py: E501, B950
+    payments/models.py: VNE003
