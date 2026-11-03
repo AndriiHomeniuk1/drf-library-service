@@ -21,7 +21,6 @@ from payments.serializers import (
     PaymentRetrieveSerializer,
 )
 
-
 logger = logging.getLogger(__name__)
 
 
@@ -107,8 +106,7 @@ class PaymentViewSet(
             )
 
         payment = (
-            Payment.objects
-            .select_related("borrowing__user")
+            Payment.objects.select_related("borrowing__user")
             .filter(session_id=session_id)
             .first()
         )

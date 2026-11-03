@@ -6,7 +6,6 @@ from books.models import Book
 from books.tests.factories import sample_book
 from users.tests.factories import sample_admin, sample_user
 
-
 LIST_URL = reverse("books:book-list")
 
 

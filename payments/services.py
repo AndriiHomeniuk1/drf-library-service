@@ -20,9 +20,7 @@ def calculate_fine(borrowing: Borrowing) -> Decimal:
         borrowing.actual_return_date - borrowing.expected_return_date
     ).days
     overdue_days = max(overdue_days, 0)
-    return (
-        borrowing.book.daily_fee * overdue_days * settings.FINE_MULTIPLIER
-    )
+    return borrowing.book.daily_fee * overdue_days * settings.FINE_MULTIPLIER
 
 
 def create_stripe_session(
@@ -38,9 +36,7 @@ def create_stripe_session(
         request.build_absolute_uri(reverse("payments:payment-success"))
         + "?session_id={CHECKOUT_SESSION_ID}"
     )
-    cancel_url = request.build_absolute_uri(
-        reverse("payments:payment-cancel")
-    )
+    cancel_url = request.build_absolute_uri(reverse("payments:payment-cancel"))
 
     session = stripe.checkout.Session.create(
         mode="payment",
@@ -69,8 +65,7 @@ def create_stripe_session(
 
 
 def create_payment_session(
-    borrowing: Borrowing,
-    request: HttpRequest
+    borrowing: Borrowing, request: HttpRequest
 ) -> Payment:
     return create_stripe_session(
         borrowing=borrowing,
@@ -81,10 +76,7 @@ def create_payment_session(
     )
 
 
-def create_fine_session(
-    borrowing: Borrowing,
-    request: HttpRequest
-) -> Payment:
+def create_fine_session(borrowing: Borrowing, request: HttpRequest) -> Payment:
     return create_stripe_session(
         borrowing=borrowing,
         request=request,

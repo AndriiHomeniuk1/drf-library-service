@@ -11,7 +11,6 @@ from payments.models import Payment
 from payments.tests.factories import sample_payment
 from users.tests.factories import sample_admin, sample_user
 
-
 LIST_URL = reverse("payments:payment-list")
 SUCCESS_URL = reverse("payments:payment-success")
 CANCEL_URL = reverse("payments:payment-cancel")
