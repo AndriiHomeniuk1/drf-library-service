@@ -155,7 +155,7 @@ class BorrowingViewSet(
         with transaction.atomic():
             borrowing = get_object_or_404(
                 self.get_queryset().select_for_update(),
-                pk=pk
+                pk=pk,
             )
 
             if borrowing.actual_return_date is not None:

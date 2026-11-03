@@ -77,7 +77,7 @@ def create_payment_session(
         request=request,
         amount=calculate_borrowing_price(borrowing),
         payment_type=Payment.Type.PAYMENT,
-        product_name=f"Borrowing: {borrowing.book.title}"
+        product_name=f"Borrowing: {borrowing.book.title}",
     )
 
 
@@ -90,5 +90,5 @@ def create_fine_session(
         request=request,
         amount=calculate_fine(borrowing),
         payment_type=Payment.Type.FINE,
-        product_name=f"Fine for overdue: {borrowing.book.title}"
+        product_name=f"Fine for overdue: {borrowing.book.title}",
     )

@@ -17,12 +17,12 @@ class Borrowing(models.Model):
     book = models.ForeignKey(
         Book,
         on_delete=models.CASCADE,
-        related_name="borrowings"
+        related_name="borrowings",
     )
     user = models.ForeignKey(
         settings.AUTH_USER_MODEL,
         on_delete=models.CASCADE,
-        related_name="borrowings"
+        related_name="borrowings",
     )
 
     class Meta:
@@ -90,7 +90,7 @@ class Borrowing(models.Model):
         self.validate_return_dates(
             self.borrow_date,
             self.expected_return_date,
-            self.actual_return_date
+            self.actual_return_date,
         )
 
     def save(
