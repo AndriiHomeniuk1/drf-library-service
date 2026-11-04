@@ -10,6 +10,7 @@ For the full list of settings and their values, see
 https://docs.djangoproject.com/en/6.1/ref/settings/
 """
 
+import socket
 from datetime import timedelta
 from pathlib import Path
 
@@ -34,6 +35,10 @@ DEBUG = env.bool("DJANGO_DEBUG", default=False)
 
 ALLOWED_HOSTS = env.list("DJANGO_ALLOWED_HOSTS", default=[])
 
+if DEBUG:
+    _, _, _ips = socket.gethostbyname_ex(socket.gethostname())
+    INTERNAL_IPS = ["127.0.0.1"] + [ip.rsplit(".", 1)[0] + ".1" for ip in _ips]
+
 
 # Application definition
 
@@ -45,6 +50,7 @@ INSTALLED_APPS = [
     "django.contrib.messages",
     "django.contrib.staticfiles",
     "rest_framework",
+    "debug_toolbar",
     "drf_spectacular",
     "books",
     "users",
@@ -57,6 +63,7 @@ AUTH_USER_MODEL = "users.User"
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
     "whitenoise.middleware.WhiteNoiseMiddleware",
+    "debug_toolbar.middleware.DebugToolbarMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
     "django.middleware.common.CommonMiddleware",
     "django.middleware.csrf.CsrfViewMiddleware",
