@@ -2,6 +2,7 @@ from decimal import Decimal
 
 import stripe
 from django.conf import settings
+from django.db import transaction
 from django.urls import reverse
 from django.http import HttpRequest
 
@@ -84,3 +85,29 @@ def create_fine_session(borrowing: Borrowing, request: HttpRequest) -> Payment:
         payment_type=Payment.Type.FINE,
         product_name=f"Fine for overdue: {borrowing.book.title}",
     )
+
+
+def confirm_payment(payment_id: int) -> Payment | None:
+    """
+    Mark the payment as PAID, exactly once, even for concurrent requests.
+
+    The row is locked with `select_for_update`, so a second request waits
+    until the first one commits and then sees the PAID status.
+
+    Returns the payment if THIS call confirmed it (the caller should send
+    notifications), or None if it had already been confirmed before.
+    """
+    with transaction.atomic():
+        payment = (
+            Payment.objects.select_for_update(of=("self",))
+            .select_related("borrowing__user")
+            .get(pk=payment_id)
+        )
+
+        if payment.status == Payment.Status.PAID:
+            return None
+
+        payment.status = Payment.Status.PAID
+        payment.save(update_fields=["status"])
+
+    return payment
