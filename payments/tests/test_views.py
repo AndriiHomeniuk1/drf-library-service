@@ -158,6 +158,25 @@ class PaymentSuccessTests(PaymentApiTestCase):
         self.stripe_retrieve.assert_not_called()
         self.telegram.assert_not_called()
 
+    def test_payment_confirmed_meanwhile_is_not_notified_twice(self):
+        """
+        Simulates a second request that confirms the payment while this one
+        is waiting for Stripe: the late request must not send a notification.
+        """
+
+        def confirmed_by_another_request(session_id):
+            Payment.objects.filter(pk=self.payment.pk).update(
+                status=Payment.Status.PAID
+            )
+            return SimpleNamespace(payment_status="paid")
+
+        self.stripe_retrieve.side_effect = confirmed_by_another_request
+
+        response = self.confirm()
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.telegram.assert_not_called()
+
     def test_unpaid_session_leaves_payment_pending(self):
         self.stripe_retrieve.return_value = SimpleNamespace(
             payment_status="unpaid"

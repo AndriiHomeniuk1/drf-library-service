@@ -3,7 +3,9 @@ from decimal import Decimal
 from unittest.mock import patch
 
 from django.conf import settings
-from django.test import TestCase
+from django.db import connection
+from django.test import TestCase, skipUnlessDBFeature
+from django.test.utils import CaptureQueriesContext
 from django.utils import timezone
 from rest_framework.test import APIRequestFactory
 
@@ -13,11 +15,12 @@ from payments.models import Payment
 from payments.services import (
     calculate_borrowing_price,
     calculate_fine,
+    confirm_payment,
     create_fine_session,
     create_payment_session,
     create_stripe_session,
 )
-from payments.tests.factories import fake_stripe_session
+from payments.tests.factories import fake_stripe_session, sample_payment
 
 
 class PriceCalculationTests(TestCase):
@@ -158,3 +161,29 @@ class StripeSessionTests(TestCase):
         expected = Decimal("2.00") * 2 * settings.FINE_MULTIPLIER
         self.assertEqual(payment.type, Payment.Type.FINE)
         self.assertEqual(payment.money_to_pay, expected)
+
+
+class ConfirmPaymentTests(TestCase):
+    def setUp(self):
+        self.payment = sample_payment()
+
+    def test_pending_payment_is_marked_paid_and_returned(self):
+        confirmed = confirm_payment(self.payment.pk)
+
+        self.assertEqual(confirmed.pk, self.payment.pk)
+        self.payment.refresh_from_db()
+        self.assertEqual(self.payment.status, Payment.Status.PAID)
+
+    def test_already_paid_payment_is_not_confirmed_again(self):
+        confirm_payment(self.payment.pk)
+
+        self.assertIsNone(confirm_payment(self.payment.pk))
+
+    @skipUnlessDBFeature("has_select_for_update")
+    def test_payment_row_is_locked(self):
+        with CaptureQueriesContext(connection) as queries:
+            confirm_payment(self.payment.pk)
+
+        self.assertTrue(
+            any("FOR UPDATE" in query["sql"] for query in queries),
+        )
