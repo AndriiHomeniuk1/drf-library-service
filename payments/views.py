@@ -20,6 +20,7 @@ from payments.serializers import (
     PaymentListSerializer,
     PaymentRetrieveSerializer,
 )
+from payments.services import confirm_payment
 
 logger = logging.getLogger(__name__)
 
@@ -139,8 +140,13 @@ class PaymentViewSet(
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
-        payment.status = Payment.Status.PAID
-        payment.save(update_fields=["status"])
+        confirmed = confirm_payment(payment.pk)
+        if confirmed is None:
+            return Response(
+                {"detail": "Payment already confirmed."},
+                status=status.HTTP_200_OK,
+            )
+        payment = confirmed
 
         send_telegram_message(
             "Payment successful\n\n"
