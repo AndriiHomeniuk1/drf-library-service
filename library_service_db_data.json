@@ -1,0 +1,417 @@
+[
+  {
+    "model": "books.book",
+    "pk": 1,
+    "fields": {
+      "title": "The Great Gatsby",
+      "author": "F. Scott Fitzgerald",
+      "cover": "soft",
+      "inventory": 8,
+      "daily_fee": "0.50"
+    }
+  },
+  {
+    "model": "books.book",
+    "pk": 2,
+    "fields": {
+      "title": "To Kill a Mockingbird",
+      "author": "Harper Lee",
+      "cover": "hard",
+      "inventory": 5,
+      "daily_fee": "1.00"
+    }
+  },
+  {
+    "model": "books.book",
+    "pk": 3,
+    "fields": {
+      "title": "1984",
+      "author": "George Orwell",
+      "cover": "soft",
+      "inventory": 10,
+      "daily_fee": "1.00"
+    }
+  },
+  {
+    "model": "books.book",
+    "pk": 4,
+    "fields": {
+      "title": "Pride and Prejudice",
+      "author": "Jane Austen",
+      "cover": "hard",
+      "inventory": 4,
+      "daily_fee": "2.75"
+    }
+  },
+  {
+    "model": "books.book",
+    "pk": 5,
+    "fields": {
+      "title": "The Hobbit",
+      "author": "J. R. R. Tolkien",
+      "cover": "hard",
+      "inventory": 7,
+      "daily_fee": "1.50"
+    }
+  },
+  {
+    "model": "books.book",
+    "pk": 6,
+    "fields": {
+      "title": "The Catcher in the Rye",
+      "author": "J. D. Salinger",
+      "cover": "soft",
+      "inventory": 6,
+      "daily_fee": "1.25"
+    }
+  },
+  {
+    "model": "books.book",
+    "pk": 7,
+    "fields": {
+      "title": "The Lord of the Rings",
+      "author": "J. R. R. Tolkien",
+      "cover": "hard",
+      "inventory": 3,
+      "daily_fee": "0.75"
+    }
+  },
+  {
+    "model": "books.book",
+    "pk": 8,
+    "fields": {
+      "title": "Animal Farm",
+      "author": "George Orwell",
+      "cover": "soft",
+      "inventory": 9,
+      "daily_fee": "1.75"
+    }
+  },
+  {
+    "model": "books.book",
+    "pk": 9,
+    "fields": {
+      "title": "The Alchemist",
+      "author": "Paulo Coelho",
+      "cover": "soft",
+      "inventory": 5,
+      "daily_fee": "0.80"
+    }
+  },
+  {
+    "model": "books.book",
+    "pk": 10,
+    "fields": {
+      "title": "Brave New World",
+      "author": "Aldous Huxley",
+      "cover": "hard",
+      "inventory": 4,
+      "daily_fee": "1.25"
+    }
+  },
+  {
+    "model": "users.user",
+    "pk": 1,
+    "fields": {
+      "password": "pbkdf2_sha256$1500000$4w6RpRRQnOjqXwg1it2UOy$dlCmiqn1Q4TGfdp0uYms1Wzu+FmuN1x56WnZqwgOBR4=",
+      "email": "admin@library.com",
+      "first_name": "Library",
+      "last_name": "Admin",
+      "is_staff": true,
+      "is_superuser": true
+    }
+  },
+  {
+    "model": "users.user",
+    "pk": 2,
+    "fields": {
+      "password": "pbkdf2_sha256$1500000$6S2cSN3c5WlYR9crhwQntT$0D8fB0un7dEkCagmMv2EnhXS32XywkI54T8Z/xOLUXU=",
+      "email": "user@library.com",
+      "first_name": "Demo",
+      "last_name": "User",
+      "is_staff": false
+    }
+  },
+  {
+    "model": "users.user",
+    "pk": 3,
+    "fields": {
+      "password": "pbkdf2_sha256$1500000$kjQDFxHMm0PqAYo0gGdhuS$jMpaTN+PYexIdKJ72z0kAkhkJ+aXK4pu7tOj6qhGoGc=",
+      "email": "maria.bondar@example.com",
+      "first_name": "Maria",
+      "last_name": "Bondar",
+      "is_staff": false
+    }
+  },
+  {
+    "model": "users.user",
+    "pk": 4,
+    "fields": {
+      "password": "pbkdf2_sha256$1500000$oTAt1stTOYBGou0IIO0xZe$zw26t6FLrATalyOl0lTJgxDkpp0fglQOFVsFHI7TvI0=",
+      "email": "dmytro.melnyk@example.com",
+      "first_name": "Dmytro",
+      "last_name": "Melnyk",
+      "is_staff": false
+    }
+  },
+  {
+    "model": "users.user",
+    "pk": 5,
+    "fields": {
+      "password": "pbkdf2_sha256$1500000$bU9PRpPYHwPgWtfW391pqX$hEe91TL0drJ3T6dtIT3WW0SFISUblfqhsoIDdVB6BqI=",
+      "email": "kateryna.tkach@example.com",
+      "first_name": "Kateryna",
+      "last_name": "Tkach",
+      "is_staff": false
+    }
+  },
+  {
+    "model": "borrowings.borrowing",
+    "pk": 1,
+    "fields": {
+      "borrow_date": "2026-07-15",
+      "expected_return_date": "2026-07-22",
+      "actual_return_date": "2026-07-21",
+      "book": 1,
+      "user": 2
+    }
+  },
+  {
+    "model": "borrowings.borrowing",
+    "pk": 2,
+    "fields": {
+      "borrow_date": "2026-08-05",
+      "expected_return_date": "2026-08-12",
+      "actual_return_date": "2026-08-11",
+      "book": 4,
+      "user": 2
+    }
+  },
+  {
+    "model": "borrowings.borrowing",
+    "pk": 3,
+    "fields": {
+      "borrow_date": "2026-08-20",
+      "expected_return_date": "2026-08-27",
+      "actual_return_date": "2026-08-26",
+      "book": 2,
+      "user": 1
+    }
+  },
+  {
+    "model": "borrowings.borrowing",
+    "pk": 4,
+    "fields": {
+      "borrow_date": "2026-08-25",
+      "expected_return_date": "2026-09-01",
+      "actual_return_date": "2026-08-31",
+      "book": 4,
+      "user": 3
+    }
+  },
+  {
+    "model": "borrowings.borrowing",
+    "pk": 5,
+    "fields": {
+      "borrow_date": "2026-09-01",
+      "expected_return_date": "2026-09-08",
+      "actual_return_date": "2026-09-10",
+      "book": 1,
+      "user": 2
+    }
+  },
+  {
+    "model": "borrowings.borrowing",
+    "pk": 6,
+    "fields": {
+      "borrow_date": "2026-09-08",
+      "expected_return_date": "2026-09-15",
+      "actual_return_date": null,
+      "book": 6,
+      "user": 1
+    }
+  },
+  {
+    "model": "borrowings.borrowing",
+    "pk": 7,
+    "fields": {
+      "borrow_date": "2026-09-10",
+      "expected_return_date": "2026-09-17",
+      "actual_return_date": null,
+      "book": 3,
+      "user": 3
+    }
+  },
+  {
+    "model": "borrowings.borrowing",
+    "pk": 8,
+    "fields": {
+      "borrow_date": "2026-09-12",
+      "expected_return_date": "2026-09-19",
+      "actual_return_date": "2026-09-18",
+      "book": 8,
+      "user": 1
+    }
+  },
+  {
+    "model": "borrowings.borrowing",
+    "pk": 9,
+    "fields": {
+      "borrow_date": "2026-09-15",
+      "expected_return_date": "2026-09-22",
+      "actual_return_date": "2026-09-28",
+      "book": 5,
+      "user": 1
+    }
+  },
+  {
+    "model": "borrowings.borrowing",
+    "pk": 10,
+    "fields": {
+      "borrow_date": "2026-09-18",
+      "expected_return_date": "2026-09-25",
+      "actual_return_date": "2026-09-24",
+      "book": 8,
+      "user": 4
+    }
+  },
+  {
+    "model": "borrowings.borrowing",
+    "pk": 11,
+    "fields": {
+      "borrow_date": "2026-09-20",
+      "expected_return_date": "2026-09-27",
+      "actual_return_date": null,
+      "book": 9,
+      "user": 3
+    }
+  },
+  {
+    "model": "borrowings.borrowing",
+    "pk": 12,
+    "fields": {
+      "borrow_date": "2026-09-25",
+      "expected_return_date": "2026-10-02",
+      "actual_return_date": null,
+      "book": 7,
+      "user": 2
+    }
+  },
+  {
+    "model": "borrowings.borrowing",
+    "pk": 13,
+    "fields": {
+      "borrow_date": "2026-09-28",
+      "expected_return_date": "2026-10-05",
+      "actual_return_date": null,
+      "book": 10,
+      "user": 5
+    }
+  },
+  {
+    "model": "borrowings.borrowing",
+    "pk": 14,
+    "fields": {
+      "borrow_date": "2026-09-29",
+      "expected_return_date": "2026-10-07",
+      "actual_return_date": null,
+      "book": 6,
+      "user": 4
+    }
+  },
+  {
+    "model": "borrowings.borrowing",
+    "pk": 15,
+    "fields": {
+      "borrow_date": "2026-09-29",
+      "expected_return_date": "2026-10-06",
+      "actual_return_date": null,
+      "book": 10,
+      "user": 2
+    }
+  },
+  {
+    "model": "payments.payment",
+    "pk": 1,
+    "fields": {
+      "status": "paid",
+      "type": "payment",
+      "borrowing": 1,
+      "session_url": "https://checkout.stripe.com/c/pay/cs_test_library001",
+      "session_id": "cs_test_library001",
+      "money_to_pay": "3.50"
+    }
+  },
+  {
+    "model": "payments.payment",
+    "pk": 2,
+    "fields": {
+      "status": "paid",
+      "type": "payment",
+      "borrowing": 4,
+      "session_url": "https://checkout.stripe.com/c/pay/cs_test_library002",
+      "session_id": "cs_test_library002",
+      "money_to_pay": "19.25"
+    }
+  },
+  {
+    "model": "payments.payment",
+    "pk": 3,
+    "fields": {
+      "status": "pending",
+      "type": "payment",
+      "borrowing": 8,
+      "session_url": "https://checkout.stripe.com/c/pay/cs_test_a1xLT6jjvLY4JVebVJD9coCyTK136qFwFaRYp1ITj5j2YDrWm7SEc8Yt9x#fidnandhYHdWcXxpYCc%2FJ2FgY2RwaXEnKSdicyc%2FNSknZHVsTmB8Jz8ndW5acWB2cVowNFBKSnJ8SXJwc09QazRXTm5pdk1ybUc8RjEza1E9Z2FgXDJWMmQ8PVxPVEdtbVAxa0wwRGdfSEM2M2s1YmBNUlAxSH9XSl1UbEFLTWhzNUFRcz1fYXxjXzU1QXJqcmtrclMnKSdjd2poVmB3c2B3Jz9xd3BgKSdnZGZuYndqcGthRmppancnPycmY2NjY2NjJyknaWR8anBxUXx1YCc%2FJ3Zsa2JpYFpscWBoJyknYGtkZ2lgVWlkZmBtamlhYHd2Jz9xd3BgeCUl",
+      "session_id": "cs_test_a1xLT6jjvLY4JVebVJD9coCyTK136qFwFaRYp1ITj5j2YDrWm7SEc8Yt9x",
+      "money_to_pay": "12.50"
+    }
+  },
+  {
+    "model": "payments.payment",
+    "pk": 4,
+    "fields": {
+      "status": "pending",
+      "type": "payment",
+      "borrowing": 6,
+      "session_url": "https://checkout.stripe.com/c/pay/cs_test_library004",
+      "session_id": "cs_test_library004",
+      "money_to_pay": "8.75"
+    }
+  },
+  {
+    "model": "payments.payment",
+    "pk": 5,
+    "fields": {
+      "status": "pending",
+      "type": "payment",
+      "borrowing": 12,
+      "session_url": "https://checkout.stripe.com/c/pay/cs_test_library005",
+      "session_id": "cs_test_library005",
+      "money_to_pay": "5.25"
+    }
+  },
+  {
+    "model": "payments.payment",
+    "pk": 6,
+    "fields": {
+      "status": "pending",
+      "type": "fine",
+      "borrowing": 5,
+      "session_url": "https://checkout.stripe.com/c/pay/cs_test_library006",
+      "session_id": "cs_test_library006",
+      "money_to_pay": "2.00"
+    }
+  },
+  {
+    "model": "payments.payment",
+    "pk": 7,
+    "fields": {
+      "status": "pending",
+      "type": "fine",
+      "borrowing": 9,
+      "session_url": "https://checkout.stripe.com/c/pay/cs_test_a1rXOFfy3WaNTuqurZxbfMEU7Wj4JkhPND9RGIDTAPLXbgXCS8i7Rx4tO6#fidnandhYHdWcXxpYCc%2FJ2FgY2RwaXEnKSdicyc%2FNSknZHVsTmB8Jz8ndW5acWB2cVowNFBKSnJ8SXJwc09QazRXTm5pdk1ybUc8RjEza1E9Z2FgXDJWMmQ8PVxPVEdtbVAxa0wwRGdfSEM2M2s1YmBNUlAxSH9XSl1UbEFLTWhzNUFRcz1fYXxjXzU1QXJqcmtrclMnKSdjd2poVmB3c2B3Jz9xd3BgKSdnZGZuYndqcGthRmppancnPycmY2NjY2NjJyknaWR8anBxUXx1YCc%2FJ3Zsa2JpYFpscWBoJyknYGtkZ2lgVWlkZmBtamlhYHd2Jz9xd3BgeCUl",
+      "session_id": "cs_test_a1rXOFfy3WaNTuqurZxbfMEU7Wj4JkhPND9RGIDTAPLXbgXCS8i7Rx4tO6",
+      "money_to_pay": "18.00"
+    }
+  }
+]
