@@ -1,3 +1,4 @@
+from datetime import UTC, datetime
 from decimal import Decimal
 
 import stripe
@@ -34,13 +35,11 @@ def calculate_fine(borrowing: Borrowing) -> Decimal:
     return borrowing.book.daily_fee * overdue_days * settings.FINE_MULTIPLIER
 
 
-def create_stripe_session(
-    borrowing: Borrowing,
+def create_checkout_session(
     request: HttpRequest,
     amount: Decimal,
-    payment_type: str,
     product_name: str,
-) -> Payment:
+):
     stripe.api_key = settings.STRIPE_SECRET_KEY
 
     success_url = (
@@ -49,7 +48,7 @@ def create_stripe_session(
     )
     cancel_url = request.build_absolute_uri(reverse("payments:payment-cancel"))
 
-    session = stripe.checkout.Session.create(
+    return stripe.checkout.Session.create(
         mode="payment",
         line_items=[
             {
@@ -65,6 +64,20 @@ def create_stripe_session(
         cancel_url=cancel_url,
     )
 
+
+def session_expires_at(session: stripe.checkout.Session) -> datetime:
+    return datetime.fromtimestamp(session.expires_at, tz=UTC)
+
+
+def create_stripe_session(
+    borrowing: Borrowing,
+    request: HttpRequest,
+    amount: Decimal,
+    payment_type: str,
+    product_name: str,
+) -> Payment:
+    session = create_checkout_session(request, amount, product_name)
+
     return Payment.objects.create(
         status=Payment.Status.PENDING,
         type=payment_type,
@@ -72,6 +85,7 @@ def create_stripe_session(
         session_url=session.url,
         session_id=session.id,
         money_to_pay=amount,
+        expires_at=session_expires_at(session),
     )
 
 
