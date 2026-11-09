@@ -157,3 +157,49 @@ def expire_stale_payments(user: User) -> int:
         status=Payment.Status.PENDING,
         expires_at__lt=timezone.now(),
     ).update(status=Payment.Status.EXPIRED)
+
+
+def renew_payment(payment_id: int, request: HttpRequest) -> Payment:
+    """
+    Create a new Stripe Checkout session for an unpaid payment.
+
+    The old session must be expired in Stripe,
+    otherwise it could still be paid.
+    The payment row is locked, so parallel requests do not create two sessions.
+    """
+    with transaction.atomic():
+        payment = (
+            Payment.objects.select_for_update(of=("self",))
+            .select_related("borrowing__book")
+            .get(pk=payment_id)
+        )
+
+        if payment.status == Payment.Status.PAID:
+            raise PaymentRenewalError("This payment is already paid.")
+
+        stripe.api_key = settings.STRIPE_SECRET_KEY
+        old_session = stripe.checkout.Session.retrieve(payment.session_id)
+        if old_session.status == "open":
+            raise PaymentRenewalError(
+                "The payment session is still active. Use session_url to pay."
+            )
+        if old_session.status == "complete":
+            raise PaymentRenewalError(
+                "This session was already paid, confirmation is pending."
+            )
+
+        session = create_checkout_session(
+            request,
+            payment.money_to_pay,
+            get_product_name(payment.type, payment.borrowing.book.title),
+        )
+
+        payment.session_id = session.id
+        payment.session_url = session.url
+        payment.expires_at = session_expires_at(session)
+        payment.status = Payment.Status.PENDING
+        payment.save(
+            update_fields=["session_id", "session_url", "expires_at", "status"]
+        )
+
+    return payment
