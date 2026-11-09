@@ -56,7 +56,7 @@ from drf_spectacular.utils import (
         summary="Create a borrowing",
         description=(
             "Decreases book inventory by 1 and creates a Stripe payment "
-            "session. Denied if the user has pending payments."
+            "session. Denied if the user has pending or expired payments."
         ),
         request=BorrowingCreateSerializer,
         responses={201: BorrowingReadSerializer},
