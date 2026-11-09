@@ -10,6 +10,16 @@ from borrowings.models import Borrowing
 from payments.models import Payment
 
 
+def get_product_name(payment_type: str, book_title: str) -> str:
+    if payment_type == Payment.Type.FINE:
+        return f"Fine for overdue: {book_title}"
+    return f"Borrowing: {book_title}"
+
+
+class PaymentRenewalError(Exception):
+    """Raised when an unpaid payment cannot get a new Stripe session."""
+
+
 def calculate_borrowing_price(borrowing: Borrowing) -> Decimal:
     days = (borrowing.expected_return_date - borrowing.borrow_date).days
     days = max(days, 1)
