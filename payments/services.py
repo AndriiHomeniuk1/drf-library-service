@@ -6,11 +6,9 @@ from django.conf import settings
 from django.db import transaction
 from django.urls import reverse
 from django.http import HttpRequest
-from django.utils import timezone
 
 from borrowings.models import Borrowing
 from payments.models import Payment
-from users.models import User
 
 
 def get_product_name(payment_type: str, book_title: str) -> str:
@@ -143,20 +141,6 @@ def confirm_payment(payment_id: int) -> Payment | None:
         payment.save(update_fields=["status"])
 
     return payment
-
-
-def expire_stale_payments(user: User) -> int:
-    """
-    Mark the user's pending payments whose Stripe session has run out as
-    EXPIRED, so the user can see that they have to be renewed. Returns how
-    many were marked. Payments without `expires_at` (created before the field
-    existed) are left untouched.
-    """
-    return Payment.objects.filter(
-        borrowing__user=user,
-        status=Payment.Status.PENDING,
-        expires_at__lt=timezone.now(),
-    ).update(status=Payment.Status.EXPIRED)
 
 
 def renew_payment(payment_id: int, request: HttpRequest) -> Payment:
