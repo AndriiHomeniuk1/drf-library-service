@@ -1,5 +1,8 @@
+from datetime import timedelta
 from decimal import Decimal
 from types import SimpleNamespace
+
+from django.utils import timezone
 
 from borrowings.tests.factories import sample_borrowing
 from payments.models import Payment
@@ -22,12 +25,19 @@ def sample_payment(**params):
 def fake_stripe_session(
     session_id="cs_test_1",
     url="https://checkout.stripe.test/pay/cs_test_1",
+    status="open",
+    expires_at=None,
 ):
     """
     Stand-in for the object returned by `stripe.checkout.Session.create`.
 
-    The real Stripe session has many fields, but our code only reads `id`
-    and `url`, so the fake has just these two. Used as the return value of
-    the patched Stripe call, so tests never contact Stripe.
+    The real Stripe session has many fields, but our code only reads `id`,
+    `url`, `status` and `expires_at` (a Unix timestamp), so the fake has just
+    these. Used as the return value of the patched Stripe call, so tests never
+    contact Stripe.
     """
-    return SimpleNamespace(id=session_id, url=url)
+    if expires_at is None:
+        expires_at = int((timezone.now() + timedelta(hours=24)).timestamp())
+    return SimpleNamespace(
+        id=session_id, url=url, status=status, expires_at=expires_at
+    )
