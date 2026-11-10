@@ -13,12 +13,14 @@ from books.tests.factories import sample_book
 from borrowings.tests.factories import sample_borrowing
 from payments.models import Payment
 from payments.services import (
+    PaymentRenewalError,
     calculate_borrowing_price,
     calculate_fine,
     confirm_payment,
     create_fine_session,
     create_payment_session,
     create_stripe_session,
+    renew_payment,
 )
 from payments.tests.factories import fake_stripe_session, sample_payment
 
@@ -193,8 +195,8 @@ class StripeSessionExpirationTests(TestCase):
     def test_payment_stores_session_expiration_time(self):
         expires_at = int((timezone.now() + timedelta(hours=24)).timestamp())
         with patch(
-                "payments.services.stripe.checkout.Session.create",
-                return_value=fake_stripe_session(expires_at=expires_at),
+            "payments.services.stripe.checkout.Session.create",
+            return_value=fake_stripe_session(expires_at=expires_at),
         ):
             payment = create_stripe_session(
                 sample_borrowing(),
@@ -208,4 +210,115 @@ class StripeSessionExpirationTests(TestCase):
         self.assertEqual(
             payment.expires_at,
             datetime.fromtimestamp(expires_at, tz=UTC),
+        )
+
+
+class RenewPaymentTests(TestCase):
+    def setUp(self):
+        self.request = APIRequestFactory().post("/")
+        self.book = sample_book(title="Dune")
+        self.payment = sample_payment(
+            borrowing=sample_borrowing(book=self.book),
+            status=Payment.Status.EXPIRED,
+            session_id="cs_old",
+            session_url="https://pay.test/old",
+            money_to_pay=Decimal("7.00"),
+        )
+
+        retrieve_patcher = patch(
+            "payments.services.stripe.checkout.Session.retrieve",
+            return_value=fake_stripe_session("cs_old", status="expired"),
+        )
+        self.stripe_retrieve = retrieve_patcher.start()
+        self.addCleanup(retrieve_patcher.stop)
+
+        create_patcher = patch(
+            "payments.services.stripe.checkout.Session.create",
+            return_value=fake_stripe_session("cs_new", "https://pay.test/new"),
+        )
+        self.stripe_create = create_patcher.start()
+        self.addCleanup(create_patcher.stop)
+
+    def test_expired_payment_gets_new_pending_session(self):
+        renewed = renew_payment(self.payment.pk, self.request)
+
+        self.payment.refresh_from_db()
+        self.assertEqual(renewed.pk, self.payment.pk)
+        self.assertEqual(self.payment.status, Payment.Status.PENDING)
+        self.assertEqual(self.payment.session_id, "cs_new")
+        self.assertEqual(self.payment.session_url, "https://pay.test/new")
+        self.assertGreater(self.payment.expires_at, timezone.now())
+        self.stripe_retrieve.assert_called_once_with("cs_old")
+
+    def test_new_session_charges_the_same_amount(self):
+        renew_payment(self.payment.pk, self.request)
+
+        item = self.stripe_create.call_args.kwargs["line_items"][0]
+        self.assertEqual(item["price_data"]["unit_amount"], 700)
+        self.assertIn("Dune", item["price_data"]["product_data"]["name"])
+
+    def test_fine_keeps_its_product_name(self):
+        fine = sample_payment(
+            borrowing=sample_borrowing(
+                book=self.book, user=self.payment.borrowing.user
+            ),
+            type=Payment.Type.FINE,
+            session_id="cs_old_fine",
+        )
+
+        renew_payment(fine.pk, self.request)
+
+        name = self.stripe_create.call_args.kwargs["line_items"][0][
+            "price_data"
+        ]["product_data"]["name"]
+        self.assertIn("Fine", name)
+
+    def test_pending_payment_with_ended_session_can_be_renewed(self):
+        self.payment.status = Payment.Status.PENDING
+        self.payment.save()
+
+        renew_payment(self.payment.pk, self.request)
+
+        self.payment.refresh_from_db()
+        self.assertEqual(self.payment.session_id, "cs_new")
+
+    def test_active_session_is_not_replaced(self):
+        self.stripe_retrieve.return_value = fake_stripe_session(
+            "cs_old", status="open"
+        )
+
+        with self.assertRaises(PaymentRenewalError):
+            renew_payment(self.payment.pk, self.request)
+
+        self.stripe_create.assert_not_called()
+        self.payment.refresh_from_db()
+        self.assertEqual(self.payment.session_id, "cs_old")
+
+    def test_already_paid_session_is_not_replaced(self):
+        self.stripe_retrieve.return_value = fake_stripe_session(
+            "cs_old", status="complete"
+        )
+
+        with self.assertRaises(PaymentRenewalError):
+            renew_payment(self.payment.pk, self.request)
+
+        self.stripe_create.assert_not_called()
+
+    def test_paid_payment_cannot_be_renewed(self):
+        self.payment.status = Payment.Status.PAID
+        self.payment.save()
+
+        with self.assertRaises(PaymentRenewalError):
+            renew_payment(self.payment.pk, self.request)
+
+        self.stripe_retrieve.assert_not_called()
+        self.stripe_create.assert_not_called()
+
+    @skipUnlessDBFeature("has_select_for_update")
+    def test_payment_row_is_locked(self):
+        with CaptureQueriesContext(connection) as queries:
+            renew_payment(self.payment.pk, self.request)
+
+        self.assertTrue(
+            any("FOR UPDATE" in query["sql"] for query in queries),
         )
