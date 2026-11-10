@@ -1,4 +1,7 @@
+import hashlib
+import hmac
 import json
+import time
 from datetime import timedelta
 from decimal import Decimal
 from types import SimpleNamespace
@@ -64,3 +67,14 @@ def stripe_event_payload(
             },
         }
     )
+
+
+def stripe_signature(payload, secret):
+    """
+    Value of the `Stripe-Signature` header, built the way Stripe does it,
+    so tests exercise the real signature check instead of mocking it.
+    """
+    timestamp = int(time.time())
+    signed_payload = f"{timestamp}.{payload}".encode()
+    digest = hmac.new(secret.encode(), signed_payload, hashlib.sha256)
+    return f"t={timestamp},v1={digest.hexdigest()}"
