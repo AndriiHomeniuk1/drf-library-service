@@ -33,12 +33,11 @@ def fake_stripe_session(
     expires_at=None,
 ):
     """
-    Stand-in for the object returned by `stripe.checkout.Session.create`.
+    Fake of a Stripe Checkout session, returned by the patched
+    `Session.create` and `Session.retrieve`.
 
-    The real Stripe session has many fields, but our code only reads `id`,
-    `url`, `status` and `expires_at` (a Unix timestamp), so the fake has just
-    these. Used as the return value of the patched Stripe call, so tests never
-    contact Stripe.
+    It has only the fields our code reads: `id`, `url`, `status` and
+    `expires_at` (a Unix timestamp).
     """
     if expires_at is None:
         expires_at = int((timezone.now() + timedelta(hours=24)).timestamp())
