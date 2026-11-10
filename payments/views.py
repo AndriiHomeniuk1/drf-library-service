@@ -29,6 +29,17 @@ from payments.services import (
 logger = logging.getLogger(__name__)
 
 
+def notify_payment_paid(payment: Payment) -> None:
+    send_telegram_message(
+        "Payment successful\n\n"
+        f"Payment id: {payment.pk}\n"
+        f"Type: {payment.get_type_display()}\n"
+        f"Borrowing id: {payment.borrowing_id}\n"
+        f"User: {payment.borrowing.user.email}\n"
+        f"Amount: ${payment.money_to_pay}"
+    )
+
+
 @extend_schema_view(
     list=extend_schema(
         summary="List payments",
