@@ -1,3 +1,4 @@
+import json
 from datetime import timedelta
 from decimal import Decimal
 from types import SimpleNamespace
@@ -40,4 +41,26 @@ def fake_stripe_session(
         expires_at = int((timezone.now() + timedelta(hours=24)).timestamp())
     return SimpleNamespace(
         id=session_id, url=url, status=status, expires_at=expires_at
+    )
+
+
+def stripe_event_payload(
+    event_type="checkout.session.completed",
+    session_id="cs_test_1",
+    payment_status="paid",
+):
+    """JSON body of a Stripe webhook event for a Checkout session."""
+    return json.dumps(
+        {
+            "id": "evt_test_1",
+            "object": "event",
+            "type": event_type,
+            "data": {
+                "object": {
+                    "id": session_id,
+                    "object": "checkout.session",
+                    "payment_status": payment_status,
+                }
+            },
+        }
     )
