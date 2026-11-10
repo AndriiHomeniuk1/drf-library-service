@@ -1,4 +1,4 @@
-from datetime import timedelta
+from datetime import datetime, timedelta, UTC
 from decimal import Decimal
 from unittest.mock import patch
 
@@ -186,4 +186,26 @@ class ConfirmPaymentTests(TestCase):
 
         self.assertTrue(
             any("FOR UPDATE" in query["sql"] for query in queries),
+        )
+
+
+class StripeSessionExpirationTests(TestCase):
+    def test_payment_stores_session_expiration_time(self):
+        expires_at = int((timezone.now() + timedelta(hours=24)).timestamp())
+        with patch(
+                "payments.services.stripe.checkout.Session.create",
+                return_value=fake_stripe_session(expires_at=expires_at),
+        ):
+            payment = create_stripe_session(
+                sample_borrowing(),
+                APIRequestFactory().post("/"),
+                amount=Decimal("5.00"),
+                payment_type=Payment.Type.PAYMENT,
+                product_name="Test product",
+            )
+
+        payment.refresh_from_db()
+        self.assertEqual(
+            payment.expires_at,
+            datetime.fromtimestamp(expires_at, tz=UTC),
         )
