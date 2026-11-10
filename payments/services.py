@@ -187,3 +187,14 @@ def renew_payment(payment_id: int, request: HttpRequest) -> Payment:
         )
 
     return payment
+
+
+def expire_payment(session_id: str) -> bool:
+    """
+    Mark a pending payment as EXPIRED. Returns True if it was changed.
+    """
+    updated = Payment.objects.filter(
+        session_id=session_id,
+        status=Payment.Status.PENDING,
+    ).update(status=Payment.Status.EXPIRED)
+    return updated > 0
