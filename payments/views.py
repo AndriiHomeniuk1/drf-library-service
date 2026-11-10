@@ -161,16 +161,8 @@ class PaymentViewSet(
                 {"detail": "Payment already confirmed."},
                 status=status.HTTP_200_OK,
             )
-        payment = confirmed
 
-        send_telegram_message(
-            "Payment successful\n\n"
-            f"Payment id: {payment.pk}\n"
-            f"Type: {payment.get_type_display()}\n"
-            f"Borrowing id: {payment.borrowing_id}\n"
-            f"User: {payment.borrowing.user.email}\n"
-            f"Amount: ${payment.money_to_pay}"
-        )
+        notify_payment_paid(confirmed)
 
         return Response(
             {"detail": "Payment successful."},
