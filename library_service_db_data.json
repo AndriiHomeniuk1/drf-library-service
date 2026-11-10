@@ -382,7 +382,7 @@
     "model": "payments.payment",
     "pk": 5,
     "fields": {
-      "status": "pending",
+      "status": "paid",
       "type": "payment",
       "borrowing": 12,
       "session_url": "https://checkout.stripe.com/c/pay/cs_test_library005",
@@ -394,7 +394,7 @@
     "model": "payments.payment",
     "pk": 6,
     "fields": {
-      "status": "pending",
+      "status": "paid",
       "type": "fine",
       "borrowing": 5,
       "session_url": "https://checkout.stripe.com/c/pay/cs_test_library006",
