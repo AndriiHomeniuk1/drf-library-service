@@ -48,14 +48,16 @@ class BorrowingCreateSerializer(serializers.ModelSerializer):
     def validate(self, attrs):
         request = self.context["request"]
 
+        # An unpaid payment (pending or expired) blocks new borrowings.
         if Payment.objects.filter(
-            borrowing__user=request.user, status=Payment.Status.PENDING
+            borrowing__user=request.user,
+            status__in=(Payment.Status.PENDING, Payment.Status.EXPIRED),
         ).exists():
             raise ValidationError(
                 {
                     "detail": (
-                        "You have pending payments. Please pay them before "
-                        "borrowing new books."
+                        "You have unpaid payments. Please pay them (renew "
+                        "expired ones) before borrowing new books."
                     )
                 }
             )

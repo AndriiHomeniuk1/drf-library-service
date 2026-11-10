@@ -20,7 +20,11 @@ from payments.serializers import (
     PaymentListSerializer,
     PaymentRetrieveSerializer,
 )
-from payments.services import confirm_payment
+from payments.services import (
+    PaymentRenewalError,
+    confirm_payment,
+    renew_payment,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -187,5 +191,50 @@ class PaymentViewSet(
                     "the payment session is available for 24 hours."
                 )
             },
+            status=status.HTTP_200_OK,
+        )
+
+    @extend_schema(
+        summary="Renew an expired payment",
+        description=(
+            "Creates a new Stripe Checkout session for an unpaid payment "
+            "whose previous session has expired. The payment becomes "
+            "PENDING again with a new session_url."
+        ),
+        request=None,
+        responses={
+            200: PaymentListSerializer,
+            400: OpenApiResponse(
+                description="Payment is paid or its session is still active."
+            ),
+            404: OpenApiResponse(description="Payment not found."),
+            502: OpenApiResponse(description="Stripe is unavailable."),
+        },
+    )
+    @action(
+        detail=True,
+        methods=["post"],
+        url_path="renew",
+        url_name="renew",
+    )
+    def renew(self, request, pk=None):
+        payment = self.get_object()
+
+        try:
+            renewed = renew_payment(payment.pk, request)
+        except PaymentRenewalError as error:
+            return Response(
+                {"detail": str(error)},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        except stripe.StripeError:
+            logger.exception("Stripe session renewal failed.")
+            return Response(
+                {"detail": "Could not renew the payment with Stripe."},
+                status=status.HTTP_502_BAD_GATEWAY,
+            )
+
+        return Response(
+            PaymentListSerializer(renewed).data,
             status=status.HTTP_200_OK,
         )

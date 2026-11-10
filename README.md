@@ -174,6 +174,7 @@ All endpoints are prefixed with `/api/`. List endpoints are paginated with
 | `payments/`, `payments/{id}/`     | GET                        | Authenticated     | Own payments (admin: all)                      |
 | `payments/success/`               | GET                        | Anyone (Stripe redirect) | Confirms a paid Stripe session          |
 | `payments/cancel/`                | GET                        | Anyone (Stripe redirect) | Payment was cancelled                   |
+| `payments/{id}/renew/`            | POST                       | Authenticated       | Renew a payment whose Stripe session expired |
 
 </details>
 
@@ -196,7 +197,8 @@ available in Swagger UI.
    with a `session_url`; open it to pay.
 4. A notification is sent to Telegram.
 
-A user who has at least one **pending** payment cannot borrow new books.
+A user who has at least one pending or expired (unpaid) 
+payment cannot borrow new books.
 
 ### Payments
 
@@ -208,6 +210,10 @@ A user who has at least one **pending** payment cannot borrow new books.
 - `payments/cancel/` tells the user the payment can be made later.
 - Test card for Stripe test mode: `4242 4242 4242 4242`, any future expiry
   date and any CVC.
+- A payment expires together with its Stripe session (24 hours).
+  Expired payments are unpaid, so they still block new borrowings,
+  but they can be renewed with POST payments/{id}/renew/,
+  which creates a new Checkout session.
 
 ### Returning a book
 

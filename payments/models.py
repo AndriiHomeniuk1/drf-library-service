@@ -7,6 +7,7 @@ class Payment(models.Model):
     class Status(models.TextChoices):
         PENDING = "pending", "Pending"
         PAID = "paid", "Paid"
+        EXPIRED = "expired", "Expired"
 
     class Type(models.TextChoices):
         PAYMENT = "payment", "Payment"
@@ -27,6 +28,9 @@ class Payment(models.Model):
     session_url = models.URLField(max_length=2048)
     session_id = models.CharField(max_length=255)
     money_to_pay = models.DecimalField(max_digits=8, decimal_places=2)
+    # When the Stripe Checkout session stops accepting payments.
+    # Empty for payments created before this field existed.
+    expires_at = models.DateTimeField(null=True, blank=True)
 
     class Meta:
         ordering = ["-id"]

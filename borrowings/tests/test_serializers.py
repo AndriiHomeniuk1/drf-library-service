@@ -69,6 +69,17 @@ class BorrowingCreateSerializerTests(APITestCase):
         self.assertFalse(serializer.is_valid())
         self.assertIn("detail", serializer.errors)
 
+    def test_expired_payment_blocks_new_borrowing(self):
+        sample_payment(
+            borrowing=sample_borrowing(user=self.user),
+            status=Payment.Status.EXPIRED,
+        )
+
+        serializer = self.serializer()
+
+        self.assertFalse(serializer.is_valid())
+        self.assertIn("detail", serializer.errors)
+
     def test_paid_payment_does_not_block_new_borrowing(self):
         sample_payment(
             borrowing=sample_borrowing(user=self.user),

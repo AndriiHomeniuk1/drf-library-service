@@ -8,12 +8,16 @@ from rest_framework.test import APITestCase
 
 from borrowings.tests.factories import sample_borrowing
 from payments.models import Payment
-from payments.tests.factories import sample_payment
+from payments.tests.factories import fake_stripe_session, sample_payment
 from users.tests.factories import sample_admin, sample_user
 
 LIST_URL = reverse("payments:payment-list")
 SUCCESS_URL = reverse("payments:payment-success")
 CANCEL_URL = reverse("payments:payment-cancel")
+
+
+def renew_url(payment_id):
+    return reverse("payments:payment-renew", args=[payment_id])
 
 
 def detail_url(payment_id):
@@ -199,6 +203,75 @@ class PaymentSuccessTests(PaymentApiTestCase):
         self.payment.refresh_from_db()
         self.assertEqual(self.payment.status, Payment.Status.PENDING)
         self.telegram.assert_not_called()
+
+
+class PaymentRenewTests(PaymentApiTestCase):
+    def setUp(self):
+        super().setUp()
+        self.payment = sample_payment(
+            borrowing=sample_borrowing(user=self.user),
+            status=Payment.Status.EXPIRED,
+            session_id="cs_old",
+        )
+
+        retrieve_patcher = patch(
+            "payments.services.stripe.checkout.Session.retrieve",
+            return_value=fake_stripe_session("cs_old", status="expired"),
+        )
+        self.stripe_retrieve = retrieve_patcher.start()
+        self.addCleanup(retrieve_patcher.stop)
+
+        create_patcher = patch(
+            "payments.services.stripe.checkout.Session.create",
+            return_value=fake_stripe_session("cs_new", "https://pay.test/new"),
+        )
+        self.stripe_create = create_patcher.start()
+        self.addCleanup(create_patcher.stop)
+
+    def test_renew_requires_authentication(self):
+        response = self.client.post(renew_url(self.payment.pk))
+
+        self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
+
+    def test_user_renews_own_payment(self):
+        self.client.force_authenticate(self.user)
+
+        response = self.client.post(renew_url(self.payment.pk))
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.data["status"], Payment.Status.PENDING)
+        self.assertEqual(response.data["session_url"], "https://pay.test/new")
+
+    def test_user_cannot_renew_foreign_payment(self):
+        self.client.force_authenticate(self.other_user)
+
+        response = self.client.post(renew_url(self.payment.pk))
+
+        self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
+        self.stripe_create.assert_not_called()
+
+    def test_active_session_cannot_be_renewed(self):
+        self.stripe_retrieve.return_value = fake_stripe_session(
+            "cs_old", status="open"
+        )
+        self.client.force_authenticate(self.user)
+
+        response = self.client.post(renew_url(self.payment.pk))
+
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.stripe_create.assert_not_called()
+
+    def test_stripe_error_returns_502_and_keeps_payment(self):
+        self.stripe_create.side_effect = stripe.StripeError("Stripe is down")
+        self.client.force_authenticate(self.user)
+
+        with self.assertLogs("payments.views", level="ERROR"):
+            response = self.client.post(renew_url(self.payment.pk))
+
+        self.assertEqual(response.status_code, status.HTTP_502_BAD_GATEWAY)
+        self.payment.refresh_from_db()
+        self.assertEqual(self.payment.status, Payment.Status.EXPIRED)
+        self.assertEqual(self.payment.session_id, "cs_old")
 
 
 class PaymentCancelTests(APITestCase):

@@ -15,6 +15,7 @@ class PaymentListSerializer(serializers.ModelSerializer):
             "session_url",
             "session_id",
             "money_to_pay",
+            "expires_at",
         )
 
 
