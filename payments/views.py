@@ -23,6 +23,7 @@ from payments.serializers import (
 from payments.services import (
     PaymentRenewalError,
     confirm_payment,
+    handle_stripe_event,
     renew_payment,
 )
 
@@ -241,3 +242,42 @@ class PaymentViewSet(
             PaymentListSerializer(renewed).data,
             status=status.HTTP_200_OK,
         )
+
+    @extend_schema(exclude=True)
+    @action(
+        detail=False,
+        methods=["post"],
+        url_path="webhook",
+        url_name="webhook",
+        authentication_classes=[],
+        permission_classes=[AllowAny],
+    )
+    def webhook(self, request):
+        """
+        Endpoint for Stripe: requests are trusted only with a valid signature.
+        """
+        secret = settings.STRIPE_WEBHOOK_SECRET
+        if not secret:
+            logger.error("STRIPE_WEBHOOK_SECRET is not configured.")
+            return Response(
+                {"detail": "Webhook is not configured."},
+                status=status.HTTP_503_SERVICE_UNAVAILABLE,
+            )
+
+        try:
+            event = stripe.Webhook.construct_event(
+                request.body,
+                request.headers.get("Stripe-Signature", ""),
+                secret,
+            )
+        except (ValueError, stripe.SignatureVerificationError):
+            return Response(
+                {"detail": "Invalid webhook request."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        confirmed = handle_stripe_event(event)
+        if confirmed is not None:
+            notify_payment_paid(confirmed)
+
+        return Response(status=status.HTTP_200_OK)
