@@ -160,6 +160,7 @@ class BorrowingViewSet(
             200: BorrowingReadSerializer,
             400: OpenApiResponse(description="Already returned."),
             404: OpenApiResponse(description="Borrowing not found."),
+            502: OpenApiResponse(description="Stripe is unavailable."),
         },
     )
     @action(detail=True, methods=["post"], url_path="return")
