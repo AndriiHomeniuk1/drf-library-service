@@ -1,3 +1,5 @@
+import logging
+
 from django.db import transaction
 from django.shortcuts import get_object_or_404
 from django.utils import timezone
@@ -24,6 +26,8 @@ from drf_spectacular.utils import (
     extend_schema,
     extend_schema_view,
 )
+
+logger = logging.getLogger(__name__)
 
 
 @extend_schema_view(
