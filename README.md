@@ -15,7 +15,9 @@ notified in Telegram.
   automatically. Users see only their own borrowings, administrators see
   everyone's. Filtering by `is_active` and `user_id`.
 - **Payments with Stripe Checkout** (test mode): rental payment on borrowing
-  creation and a **fine** when a book is returned late.
+  creation and a **fine** when a book is returned late. Payments are confirmed
+  by a **Stripe webhook** even if the user never returns to the site, and
+  expired payments can be **renewed**.
 - **Telegram notifications**: new borrowing, successful payment and a daily
   report of overdue borrowings (Celery Beat).
 - **Pending-payment guard**: a user with an unpaid payment cannot borrow new
@@ -127,6 +129,7 @@ secrets never end up in the repository.
 | `POSTGRES_PORT`        | Database port (`5432`).                                  |
 | `CELERY_BROKER_URL`    | Redis URL (`redis://redis:6379/0` inside Docker).        |
 | `STRIPE_SECRET_KEY`    | Stripe **test** secret key (`sk_test_...`).              |
+| `STRIPE_WEBHOOK_SECRET`| Optional. Signing secret of the Stripe webhook (`whsec_...`). Without it the webhook is disabled.|
 | `TELEGRAM_BOT_TOKEN`   | Token of your bot from [@BotFather](https://t.me/BotFather). |
 | `TELEGRAM_CHAT_ID`     | ID of the chat that receives notifications.              |
 
@@ -175,6 +178,7 @@ All endpoints are prefixed with `/api/`. List endpoints are paginated with
 | `payments/success/`               | GET                        | Anyone (Stripe redirect) | Confirms a paid Stripe session          |
 | `payments/cancel/`                | GET                        | Anyone (Stripe redirect) | Payment was cancelled                   |
 | `payments/{id}/renew/`            | POST                       | Authenticated       | Renew a payment whose Stripe session expired |
+| `payments/webhook/`               | POST                       | Stripe (signed) | Receives Stripe events, confirms payments and expires sessions |
 
 </details>
 
@@ -197,23 +201,24 @@ available in Swagger UI.
    with a `session_url`; open it to pay.
 4. A notification is sent to Telegram.
 
-A user who has at least one pending or expired (unpaid) 
-payment cannot borrow new books.
+A user who has at least one **pending or expired** (unpaid) payment cannot
+borrow new books.
 
 ### Payments
 
 - **Rental price** = `daily_fee` x number of days between `borrow_date` and
   `expected_return_date` (at least 1 day).
-- After the payment Stripe redirects the user to `payments/success/`, which
-  checks the session with Stripe and marks the payment as `paid`
-  (and sends a Telegram notification).
+- A payment is marked as `paid` in two ways: by the
+  [Stripe webhook](#stripe-webhook), or when Stripe redirects the user to
+  `payments/success/`, which checks the session with Stripe. Whichever comes
+  first confirms it and sends the Telegram notification, once.
 - `payments/cancel/` tells the user the payment can be made later.
 - Test card for Stripe test mode: `4242 4242 4242 4242`, any future expiry
   date and any CVC.
-- A payment expires together with its Stripe session (24 hours).
-  Expired payments are unpaid, so they still block new borrowings,
-  but they can be renewed with POST payments/{id}/renew/,
-  which creates a new Checkout session.
+- A payment expires together with its Stripe session (24 hours). Expired
+  payments are unpaid, so they still block new borrowings, but they can be
+  renewed with `POST payments/{id}/renew/`, which creates a new Checkout
+  session.
 
 ### Returning a book
 
@@ -233,6 +238,22 @@ A Telegram message is sent when a borrowing is created and when a payment is
 completed. In addition, Celery Beat runs `check_overdue_borrowings` every day
 at 09:00 (Europe/Kyiv time) and reports every borrowing that is due today or
 overdue, or "No borrowings overdue today!" when there are none.
+
+### Stripe webhook
+
+Stripe notifies the API when a payment is completed or its session expires,
+so a payment is confirmed even if the user closes the browser before the
+success page. To try it locally, install the [Stripe CLI](https://docs.stripe.com/stripe-cli)
+and run:
+
+```bash
+stripe listen --forward-to localhost:8000/api/payments/webhook/
+```
+
+Put the printed `whsec_...` secret in `STRIPE_WEBHOOK_SECRET` in `.env` and
+restart `library_api`. In a real deployment register the endpoint in the
+Stripe Dashboard and subscribe to `checkout.session.completed`,
+`checkout.session.async_payment_succeeded` and `checkout.session.expired`.
 
 ## Services in Docker Compose
 
@@ -286,10 +307,13 @@ changing `.env`.
 
 - Payments work with Stripe **test mode** only.
 - There is no refund when a book is returned earlier than expected.
-- Expired Stripe sessions are not tracked: an unpaid Checkout session cannot
-  be renewed through the API.
-- `payments/success/` and `payments/cancel/` are open endpoints, because
-  Stripe redirects the user's browser to them.
+- `payments/success/`, `payments/cancel/` and `payments/webhook/` are open
+  endpoints, because Stripe calls them (the first two redirect the user's
+  browser, the webhook is a server-to-server request). The webhook accepts
+  only requests with a valid Stripe signature.
+- Without `STRIPE_WEBHOOK_SECRET` the webhook is disabled (it answers 503)
+  and payments are confirmed only when the user returns to
+  `payments/success/`.
 
 ---
 

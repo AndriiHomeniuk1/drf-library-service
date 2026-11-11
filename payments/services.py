@@ -10,6 +10,12 @@ from django.http import HttpRequest
 from borrowings.models import Borrowing
 from payments.models import Payment
 
+PAID_EVENT_TYPES = (
+    "checkout.session.completed",
+    "checkout.session.async_payment_succeeded",
+)
+EXPIRED_EVENT_TYPE = "checkout.session.expired"
+
 
 def get_product_name(payment_type: str, book_title: str) -> str:
     if payment_type == Payment.Type.FINE:
@@ -187,3 +193,42 @@ def renew_payment(payment_id: int, request: HttpRequest) -> Payment:
         )
 
     return payment
+
+
+def expire_payment(session_id: str) -> bool:
+    """
+    Mark a pending payment as EXPIRED. Returns True if it was changed.
+    """
+    updated = Payment.objects.filter(
+        session_id=session_id,
+        status=Payment.Status.PENDING,
+    ).update(status=Payment.Status.EXPIRED)
+    return updated > 0
+
+
+def handle_stripe_event(event: stripe.Event) -> Payment | None:
+    """
+    Update payments according to a verified Stripe webhook event.
+
+    Returns the payment if this event confirmed it (the caller should send
+    notifications), otherwise None. Events for unknown sessions and event
+    types we do not use are ignored.
+    """
+    session = event["data"]["object"]
+
+    if (
+        event["type"] in PAID_EVENT_TYPES
+        and session["payment_status"] == "paid"
+    ):
+        payment_id = (
+            Payment.objects.filter(session_id=session["id"])
+            .values_list("pk", flat=True)
+            .first()
+        )
+        if payment_id is not None:
+            return confirm_payment(payment_id)
+
+    elif event["type"] == EXPIRED_EVENT_TYPE:
+        expire_payment(session["id"])
+
+    return None
