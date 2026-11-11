@@ -20,6 +20,7 @@ from payments.services import (
     create_fine_session,
     create_payment_session,
     create_stripe_session,
+    expire_payment,
     renew_payment,
 )
 from payments.tests.factories import fake_stripe_session, sample_payment
@@ -322,3 +323,28 @@ class RenewPaymentTests(TestCase):
         self.assertTrue(
             any("FOR UPDATE" in query["sql"] for query in queries),
         )
+
+
+class ExpirePaymentTests(TestCase):
+    def setUp(self):
+        self.payment = sample_payment(session_id="cs_to_expire")
+
+    def test_pending_payment_is_marked_expired(self):
+        changed = expire_payment("cs_to_expire")
+
+        self.assertTrue(changed)
+        self.payment.refresh_from_db()
+        self.assertEqual(self.payment.status, Payment.Status.EXPIRED)
+
+    def test_paid_payment_is_not_changed(self):
+        self.payment.status = Payment.Status.PAID
+        self.payment.save()
+
+        changed = expire_payment("cs_to_expire")
+
+        self.assertFalse(changed)
+        self.payment.refresh_from_db()
+        self.assertEqual(self.payment.status, Payment.Status.PAID)
+
+    def test_unknown_session_changes_nothing(self):
+        self.assertFalse(expire_payment("cs_unknown"))
