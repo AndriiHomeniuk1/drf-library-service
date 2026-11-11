@@ -1,0 +1,79 @@
+import hashlib
+import hmac
+import json
+import time
+from datetime import timedelta
+from decimal import Decimal
+from types import SimpleNamespace
+
+from django.utils import timezone
+
+from borrowings.tests.factories import sample_borrowing
+from payments.models import Payment
+
+
+def sample_payment(**params):
+    if "borrowing" not in params:
+        params["borrowing"] = sample_borrowing()
+    defaults = {
+        "status": Payment.Status.PENDING,
+        "type": Payment.Type.PAYMENT,
+        "session_url": "https://checkout.stripe.test/pay/cs_test_1",
+        "session_id": "cs_test_1",
+        "money_to_pay": Decimal("7.00"),
+    }
+    defaults.update(params)
+    return Payment.objects.create(**defaults)
+
+
+def fake_stripe_session(
+    session_id="cs_test_1",
+    url="https://checkout.stripe.test/pay/cs_test_1",
+    status="open",
+    expires_at=None,
+):
+    """
+    Fake of a Stripe Checkout session, returned by the patched
+    `Session.create` and `Session.retrieve`.
+
+    It has only the fields our code reads: `id`, `url`, `status` and
+    `expires_at` (a Unix timestamp).
+    """
+    if expires_at is None:
+        expires_at = int((timezone.now() + timedelta(hours=24)).timestamp())
+    return SimpleNamespace(
+        id=session_id, url=url, status=status, expires_at=expires_at
+    )
+
+
+def stripe_event_payload(
+    event_type="checkout.session.completed",
+    session_id="cs_test_1",
+    payment_status="paid",
+):
+    """JSON body of a Stripe webhook event for a Checkout session."""
+    return json.dumps(
+        {
+            "id": "evt_test_1",
+            "object": "event",
+            "type": event_type,
+            "data": {
+                "object": {
+                    "id": session_id,
+                    "object": "checkout.session",
+                    "payment_status": payment_status,
+                }
+            },
+        }
+    )
+
+
+def stripe_signature(payload, secret):
+    """
+    Value of the `Stripe-Signature` header, built the way Stripe does it,
+    so tests exercise the real signature check instead of mocking it.
+    """
+    timestamp = int(time.time())
+    signed_payload = f"{timestamp}.{payload}".encode()
+    digest = hmac.new(secret.encode(), signed_payload, hashlib.sha256)
+    return f"t={timestamp},v1={digest.hexdigest()}"

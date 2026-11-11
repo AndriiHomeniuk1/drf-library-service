@@ -1,0 +1,234 @@
+from datetime import UTC, datetime
+from decimal import Decimal
+
+import stripe
+from django.conf import settings
+from django.db import transaction
+from django.urls import reverse
+from django.http import HttpRequest
+
+from borrowings.models import Borrowing
+from payments.models import Payment
+
+PAID_EVENT_TYPES = (
+    "checkout.session.completed",
+    "checkout.session.async_payment_succeeded",
+)
+EXPIRED_EVENT_TYPE = "checkout.session.expired"
+
+
+def get_product_name(payment_type: str, book_title: str) -> str:
+    if payment_type == Payment.Type.FINE:
+        return f"Fine for overdue: {book_title}"
+    return f"Borrowing: {book_title}"
+
+
+class PaymentRenewalError(Exception):
+    """Raised when an unpaid payment cannot get a new Stripe session."""
+
+
+def calculate_borrowing_price(borrowing: Borrowing) -> Decimal:
+    days = (borrowing.expected_return_date - borrowing.borrow_date).days
+    days = max(days, 1)
+    return borrowing.book.daily_fee * days
+
+
+def calculate_fine(borrowing: Borrowing) -> Decimal:
+    overdue_days = (
+        borrowing.actual_return_date - borrowing.expected_return_date
+    ).days
+    overdue_days = max(overdue_days, 0)
+    return borrowing.book.daily_fee * overdue_days * settings.FINE_MULTIPLIER
+
+
+def create_checkout_session(
+    request: HttpRequest,
+    amount: Decimal,
+    product_name: str,
+):
+    stripe.api_key = settings.STRIPE_SECRET_KEY
+
+    success_url = (
+        request.build_absolute_uri(reverse("payments:payment-success"))
+        + "?session_id={CHECKOUT_SESSION_ID}"
+    )
+    cancel_url = request.build_absolute_uri(reverse("payments:payment-cancel"))
+
+    return stripe.checkout.Session.create(
+        mode="payment",
+        line_items=[
+            {
+                "price_data": {
+                    "currency": "usd",
+                    "product_data": {"name": product_name},
+                    "unit_amount": int(amount * 100),
+                },
+                "quantity": 1,
+            }
+        ],
+        success_url=success_url,
+        cancel_url=cancel_url,
+    )
+
+
+def session_expires_at(session: stripe.checkout.Session) -> datetime:
+    return datetime.fromtimestamp(session.expires_at, tz=UTC)
+
+
+def create_stripe_session(
+    borrowing: Borrowing,
+    request: HttpRequest,
+    amount: Decimal,
+    payment_type: str,
+    product_name: str,
+) -> Payment:
+    session = create_checkout_session(request, amount, product_name)
+
+    return Payment.objects.create(
+        status=Payment.Status.PENDING,
+        type=payment_type,
+        borrowing=borrowing,
+        session_url=session.url,
+        session_id=session.id,
+        money_to_pay=amount,
+        expires_at=session_expires_at(session),
+    )
+
+
+def create_payment_session(
+    borrowing: Borrowing, request: HttpRequest
+) -> Payment:
+    return create_stripe_session(
+        borrowing=borrowing,
+        request=request,
+        amount=calculate_borrowing_price(borrowing),
+        payment_type=Payment.Type.PAYMENT,
+        product_name=get_product_name(
+            Payment.Type.PAYMENT,
+            borrowing.book.title,
+        ),
+    )
+
+
+def create_fine_session(borrowing: Borrowing, request: HttpRequest) -> Payment:
+    return create_stripe_session(
+        borrowing=borrowing,
+        request=request,
+        amount=calculate_fine(borrowing),
+        payment_type=Payment.Type.FINE,
+        product_name=get_product_name(
+            Payment.Type.FINE,
+            borrowing.book.title,
+        ),
+    )
+
+
+def confirm_payment(payment_id: int) -> Payment | None:
+    """
+    Mark the payment as PAID, exactly once, even for concurrent requests.
+
+    The row is locked with `select_for_update`, so a second request waits
+    until the first one commits and then sees the PAID status.
+
+    Returns the payment if THIS call confirmed it (the caller should send
+    notifications), or None if it had already been confirmed before.
+    """
+    with transaction.atomic():
+        payment = (
+            Payment.objects.select_for_update(of=("self",))
+            .select_related("borrowing__user")
+            .get(pk=payment_id)
+        )
+
+        if payment.status == Payment.Status.PAID:
+            return None
+
+        payment.status = Payment.Status.PAID
+        payment.save(update_fields=["status"])
+
+    return payment
+
+
+def renew_payment(payment_id: int, request: HttpRequest) -> Payment:
+    """
+    Create a new Stripe Checkout session for an unpaid payment.
+
+    The old session must be expired in Stripe,
+    otherwise it could still be paid.
+    The payment row is locked, so parallel requests do not create two sessions.
+    """
+    with transaction.atomic():
+        payment = (
+            Payment.objects.select_for_update(of=("self",))
+            .select_related("borrowing__book")
+            .get(pk=payment_id)
+        )
+
+        if payment.status == Payment.Status.PAID:
+            raise PaymentRenewalError("This payment is already paid.")
+
+        stripe.api_key = settings.STRIPE_SECRET_KEY
+        old_session = stripe.checkout.Session.retrieve(payment.session_id)
+        if old_session.status == "open":
+            raise PaymentRenewalError(
+                "The payment session is still active. Use session_url to pay."
+            )
+        if old_session.status == "complete":
+            raise PaymentRenewalError(
+                "This session was already paid, confirmation is pending."
+            )
+
+        session = create_checkout_session(
+            request,
+            payment.money_to_pay,
+            get_product_name(payment.type, payment.borrowing.book.title),
+        )
+
+        payment.session_id = session.id
+        payment.session_url = session.url
+        payment.expires_at = session_expires_at(session)
+        payment.status = Payment.Status.PENDING
+        payment.save(
+            update_fields=["session_id", "session_url", "expires_at", "status"]
+        )
+
+    return payment
+
+
+def expire_payment(session_id: str) -> bool:
+    """
+    Mark a pending payment as EXPIRED. Returns True if it was changed.
+    """
+    updated = Payment.objects.filter(
+        session_id=session_id,
+        status=Payment.Status.PENDING,
+    ).update(status=Payment.Status.EXPIRED)
+    return updated > 0
+
+
+def handle_stripe_event(event: stripe.Event) -> Payment | None:
+    """
+    Update payments according to a verified Stripe webhook event.
+
+    Returns the payment if this event confirmed it (the caller should send
+    notifications), otherwise None. Events for unknown sessions and event
+    types we do not use are ignored.
+    """
+    session = event["data"]["object"]
+
+    if (
+        event["type"] in PAID_EVENT_TYPES
+        and session["payment_status"] == "paid"
+    ):
+        payment_id = (
+            Payment.objects.filter(session_id=session["id"])
+            .values_list("pk", flat=True)
+            .first()
+        )
+        if payment_id is not None:
+            return confirm_payment(payment_id)
+
+    elif event["type"] == EXPIRED_EVENT_TYPE:
+        expire_payment(session["id"])
+
+    return None
