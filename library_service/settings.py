@@ -35,7 +35,7 @@ DEBUG = env.bool("DJANGO_DEBUG", default=False)
 
 ALLOWED_HOSTS = env.list("DJANGO_ALLOWED_HOSTS", default=[])
 
-if DEBUG:
+if DEBUG:  # pragma: no cover
     _, _, _ips = socket.gethostbyname_ex(socket.gethostname())
     INTERNAL_IPS = ["127.0.0.1"] + [ip.rsplit(".", 1)[0] + ".1" for ip in _ips]
 
