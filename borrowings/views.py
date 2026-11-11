@@ -63,7 +63,10 @@ logger = logging.getLogger(__name__)
             "session. Denied if the user has pending or expired payments."
         ),
         request=BorrowingCreateSerializer,
-        responses={201: BorrowingReadSerializer},
+        responses={
+            201: BorrowingReadSerializer,
+            502: OpenApiResponse(description="Stripe is unavailable."),
+        },
     ),
 )
 class BorrowingViewSet(
