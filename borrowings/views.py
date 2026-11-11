@@ -1,5 +1,6 @@
 import logging
 
+import stripe
 from django.db import transaction
 from django.shortcuts import get_object_or_404
 from django.utils import timezone
@@ -120,9 +121,16 @@ class BorrowingViewSet(
         serializer.is_valid(raise_exception=True)
         book = serializer.validated_data["book"]
 
-        with transaction.atomic():
-            borrowing = serializer.save(user=request.user)
-            create_payment_session(borrowing, request)
+        try:
+            with transaction.atomic():
+                borrowing = serializer.save(user=request.user)
+                create_payment_session(borrowing, request)
+        except stripe.StripeError:
+            logger.exception("Stripe session creation failed.")
+            return Response(
+                {"detail": "Could not create the payment. Try again later."},
+                status=status.HTTP_502_BAD_GATEWAY,
+            )
 
         send_telegram_message(
             "New borrowing created\n\n"
