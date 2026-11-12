@@ -267,9 +267,11 @@ class BorrowingCreateTests(BorrowingApiTestCase):
     def test_stripe_failure_rolls_back_borrowing_and_inventory(self):
         self.stripe_create.side_effect = stripe.StripeError("Stripe is down")
 
-        with self.assertRaises(stripe.StripeError):
-            self.client.post(LIST_URL, self.payload)
+        with self.assertLogs("borrowings.views", level="ERROR"):
+            response = self.client.post(LIST_URL, self.payload)
 
+        self.assertEqual(response.status_code, status.HTTP_502_BAD_GATEWAY)
+        self.telegram.assert_not_called()
         self.book.refresh_from_db()
         self.assertEqual(self.book.inventory, 3)
         self.assertEqual(Borrowing.objects.count(), 0)
