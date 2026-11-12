@@ -267,9 +267,11 @@ class BorrowingCreateTests(BorrowingApiTestCase):
     def test_stripe_failure_rolls_back_borrowing_and_inventory(self):
         self.stripe_create.side_effect = stripe.StripeError("Stripe is down")
 
-        with self.assertRaises(stripe.StripeError):
-            self.client.post(LIST_URL, self.payload)
+        with self.assertLogs("borrowings.views", level="ERROR"):
+            response = self.client.post(LIST_URL, self.payload)
 
+        self.assertEqual(response.status_code, status.HTTP_502_BAD_GATEWAY)
+        self.telegram.assert_not_called()
         self.book.refresh_from_db()
         self.assertEqual(self.book.inventory, 3)
         self.assertEqual(Borrowing.objects.count(), 0)
@@ -319,6 +321,20 @@ class BorrowingReturnTests(BorrowingApiTestCase):
 
         self.client.post(return_url(borrowing.pk))
 
+        self.assertEqual(Payment.objects.count(), 0)
+
+    def test_stripe_failure_on_late_return_rolls_back_the_return(self):
+        borrowing = self.overdue_borrowing(days_late=3)
+        self.stripe_create.side_effect = stripe.StripeError("Stripe is down")
+
+        with self.assertLogs("borrowings.views", level="ERROR"):
+            response = self.client.post(return_url(borrowing.pk))
+
+        self.assertEqual(response.status_code, status.HTTP_502_BAD_GATEWAY)
+        borrowing.refresh_from_db()
+        self.book.refresh_from_db()
+        self.assertIsNone(borrowing.actual_return_date)
+        self.assertEqual(self.book.inventory, 2)
         self.assertEqual(Payment.objects.count(), 0)
 
     def test_late_return_creates_fine_payment(self):

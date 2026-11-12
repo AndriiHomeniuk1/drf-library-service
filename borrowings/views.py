@@ -1,3 +1,6 @@
+import logging
+
+import stripe
 from django.db import transaction
 from django.shortcuts import get_object_or_404
 from django.utils import timezone
@@ -24,6 +27,8 @@ from drf_spectacular.utils import (
     extend_schema,
     extend_schema_view,
 )
+
+logger = logging.getLogger(__name__)
 
 
 @extend_schema_view(
@@ -59,7 +64,10 @@ from drf_spectacular.utils import (
             "session. Denied if the user has pending or expired payments."
         ),
         request=BorrowingCreateSerializer,
-        responses={201: BorrowingReadSerializer},
+        responses={
+            201: BorrowingReadSerializer,
+            502: OpenApiResponse(description="Stripe is unavailable."),
+        },
     ),
 )
 class BorrowingViewSet(
@@ -113,9 +121,16 @@ class BorrowingViewSet(
         serializer.is_valid(raise_exception=True)
         book = serializer.validated_data["book"]
 
-        with transaction.atomic():
-            borrowing = serializer.save(user=request.user)
-            create_payment_session(borrowing, request)
+        try:
+            with transaction.atomic():
+                borrowing = serializer.save(user=request.user)
+                create_payment_session(borrowing, request)
+        except stripe.StripeError:
+            logger.exception("Stripe session creation failed.")
+            return Response(
+                {"detail": "Could not create the payment. Try again later."},
+                status=status.HTTP_502_BAD_GATEWAY,
+            )
 
         send_telegram_message(
             "New borrowing created\n\n"
@@ -145,10 +160,21 @@ class BorrowingViewSet(
             200: BorrowingReadSerializer,
             400: OpenApiResponse(description="Already returned."),
             404: OpenApiResponse(description="Borrowing not found."),
+            502: OpenApiResponse(description="Stripe is unavailable."),
         },
     )
     @action(detail=True, methods=["post"], url_path="return")
     def return_borrowing(self, request, pk=None):
+        try:
+            return self._return_borrowing(request, pk)
+        except stripe.StripeError:
+            logger.exception("Stripe fine session creation failed.")
+            return Response(
+                {"detail": "Could not create the fine payment. Try again."},
+                status=status.HTTP_502_BAD_GATEWAY,
+            )
+
+    def _return_borrowing(self, request, pk=None):
         with transaction.atomic():
             borrowing = get_object_or_404(
                 self.get_queryset().select_for_update(),
