@@ -165,6 +165,16 @@ class BorrowingViewSet(
     )
     @action(detail=True, methods=["post"], url_path="return")
     def return_borrowing(self, request, pk=None):
+        try:
+            return self._return_borrowing(request, pk)
+        except stripe.StripeError:
+            logger.exception("Stripe fine session creation failed.")
+            return Response(
+                {"detail": "Could not create the fine payment. Try again."},
+                status=status.HTTP_502_BAD_GATEWAY,
+            )
+
+    def _return_borrowing(self, request, pk=None):
         with transaction.atomic():
             borrowing = get_object_or_404(
                 self.get_queryset().select_for_update(),
